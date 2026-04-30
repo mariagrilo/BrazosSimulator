@@ -691,7 +691,7 @@
     .sidebar__footer-btn + .sidebar__footer-btn { border-left: 1px solid var(--color-border); }
     .sidebar__footer-btn:hover { background: var(--color-surface-hi); color: var(--color-text); }
     .sidebar__footer-btn.is-active { color: var(--color-accent); background: rgba(40,200,185,0.06); }
-    .sidebar.is-collapsed .sidebar__footer { flex-direction: column; }
+    .sidebar.is-collapsed .sidebar__footer { flex-direction: column; margin-top: auto; }
     .sidebar.is-collapsed .sidebar__footer-btn + .sidebar__footer-btn { border-left: none; border-top: 1px solid var(--color-border); }
     .sidebar.is-collapsed .sidebar__footer-btn span { display: none; }
 
@@ -935,10 +935,21 @@
       color: var(--color-text);
     }
     .add-param-item:disabled,
-    .add-param-item.is-in {
+    .add-param-item.is-blocked {
       cursor: default;
       color: var(--color-text-muted);
     }
+    .add-param-item.is-in { color: var(--color-text-muted); cursor: pointer; }
+    .add-param-item.is-in:hover {
+      background: rgba(255,96,25,0.10);
+      color: var(--color-level-3);
+    }
+    .add-param-item.is-in:hover .add-param-item__check { display: none; }
+    .add-param-item.is-in:hover .add-param-item__remove {
+      display: inline-block; color: var(--color-level-3);
+      width: 14px; text-align: center; font-size: 14px; line-height: 1;
+    }
+    .add-param-item__remove { display: none; }
     .add-param-item__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .add-param-item__units {
       font-family: var(--font-label);
@@ -957,11 +968,26 @@
       color: var(--color-accent);
       width: 14px; text-align: center;
     }
+    .add-param-item__locked {
+      font-family: var(--font-label);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-level-2);
+    }
+    .add-param-item.is-blocked { opacity: 0.55; cursor: not-allowed; }
 
     .graph-card__plot {
       height: 120px;
       position: relative;
       background: var(--color-bg);
+      display: flex;
+    }
+    .graph-card__plot-area {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
     }
 
     /* Smooth fade for hover-to-isolate on chart lines + legend */
@@ -995,25 +1021,40 @@
     .graph-event-line.level-2 { background: var(--color-level-2); }
     .graph-event-line.level-1 { background: var(--color-level-1); }
 
-    /* y-axis labels */
+    /* y-axes — up to two stacked side-by-side on the left of the plot-area */
+    .graph-card__y-axes {
+      flex-shrink: 0;
+      display: flex;
+      pointer-events: none;
+    }
     .graph-card__y-axis {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 48px;
+      width: 36px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 4px 6px;
-      pointer-events: none;
+      padding: 4px 4px 14px;
+      position: relative;
+      transition: opacity 0.15s ease;
+    }
+    .graph-card__y-axis + .graph-card__y-axis {
+      border-left: 1px dashed var(--color-border);
     }
     .graph-card__y-label {
       font-family: var(--font-label);
       font-size: 9px;
-      color: var(--color-text-muted);
+      color: var(--color-text-dim);
       text-align: right;
       line-height: 1;
+    }
+    .graph-card__y-unit {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      font-family: var(--font-label);
+      font-size: 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-dim);
     }
 
     /* Drop zone */
@@ -1272,11 +1313,12 @@
       position: absolute;
       top: 0;
       bottom: 0;
-      width: 1px;
+      width: 2px;
       background: var(--color-accent);
       pointer-events: none;
-      opacity: 0.85;
+      opacity: 0.95;
       transform: translateX(-50%);
+      box-shadow: 0 0 6px rgba(40,200,185,0.45);
     }
     .graph-event-line {
       cursor: pointer;
@@ -2320,35 +2362,35 @@ const N = FLIGHT.samples;
 
 /* ─── Parameter set ───────────────────────────────────────────────────── */
 const PARAMETERS = {
-  altAal:    { name:"Alt AAL",    units:"ft",  color:"#28C8B9", group:"alt",    decimals:0,
+  altAal:    { name:"Alt AAL",    units:"ft",  color:"#28C8B9", group:"alt",    decimals:0, scale:"ft",
     series: gen(N, [[0,0],[.04,0],[.08,5],[.12,180],[.22,1480],[.55,1490],[.62,1500],[.7,1100],[.82,580],[.92,80],[.96,0],[1,0]], {noise:6}) },
-  altAdh:    { name:"Alt ADH",    units:"ft",  color:"#6DEB5D", group:"alt",    decimals:0,
+  altAdh:    { name:"Alt ADH",    units:"ft",  color:"#6DEB5D", group:"alt",    decimals:0, scale:"ft",
     series: gen(N, [[0,-15],[.04,-12],[.08,-8],[.12,165],[.22,1450],[.55,1460],[.62,1470],[.7,1070],[.82,550],[.92,55],[.96,-10],[1,-15]], {noise:5}) },
-  altRadio:  { name:"Alt Radio",  units:"ft",  color:"#F9F46E", group:"alt",    decimals:0,
+  altRadio:  { name:"Alt Radio",  units:"ft",  color:"#F9F46E", group:"alt",    decimals:0, scale:"ft",
     series: gen(N, [[0,0],[.08,1],[.12,170],[.22,1490],[.62,1495],[.82,560],[.92,40],[1,0]], {noise:4}) },
-  airspeed:  { name:"Airspeed",   units:"kt",  color:"#FF6019", group:"alt",    decimals:1,
+  airspeed:  { name:"Airspeed",   units:"kt",  color:"#FF6019", group:"alt",    decimals:1, scale:"kt",
     series: gen(N, [[0,0],[.08,0],[.12,55],[.18,90],[.22,138],[.5,140],[.62,138],[.78,165],[.82,100],[.92,55],[.96,3],[1,0]], {noise:1.6, spikes:[{pct:0.78,amp:6,width:0.015}]}) },
-  eng1Torque:{ name:"Eng (1) Torque", units:"%", color:"#28C8B9", group:"power", decimals:1,
+  eng1Torque:{ name:"Eng (1) Torque", units:"%", color:"#28C8B9", group:"power", decimals:1, scale:"%",
     series: gen(N, [[0,4],[.04,32],[.08,72],[.12,78],[.22,52],[.62,55],[.82,64],[.92,68],[.96,30],[1,5]], {noise:1.4}) },
-  eng2Torque:{ name:"Eng (2) Torque", units:"%", color:"#6DEB5D", group:"power", decimals:1,
+  eng2Torque:{ name:"Eng (2) Torque", units:"%", color:"#6DEB5D", group:"power", decimals:1, scale:"%",
     series: gen(N, [[0,4],[.04,32],[.08,71],[.12,77],[.22,51],[.62,54],[.82,63],[.92,67],[.96,29],[1,5]], {noise:1.4}) },
-  collective:{ name:"Collective", units:"%",   color:"#F9F46E", group:"power",  decimals:1,
+  collective:{ name:"Collective", units:"%",   color:"#F9F46E", group:"power",  decimals:1, scale:"%",
     series: gen(N, [[0,10],[.04,25],[.08,62],[.12,70],[.22,55],[.62,55],[.82,60],[.92,65],[.96,28],[1,10]], {noise:1.2}) },
-  pitch:     { name:"Pitch",      units:"°",   color:"#28C8B9", group:"attitude",decimals:1,
+  pitch:     { name:"Pitch",      units:"°",   color:"#28C8B9", group:"attitude",decimals:1, scale:"deg",
     series: gen(N, [[0,0],[.08,2],[.22,2],[.62,1],[.82,-1],[.92,1],[1,0]], {noise:0.6, spikes:[{pct:0.47,amp:-3.6,width:0.012}]}) },
-  vsi:       { name:"Vert Speed", units:"fpm", color:"#F9F46E", group:"attitude",decimals:0,
+  vsi:       { name:"Vert Speed", units:"fpm", color:"#F9F46E", group:"attitude",decimals:0, scale:"fpm",
     series: gen(N, [[0,0],[.12,1100],[.22,200],[.55,0],[.62,-100],[.82,-700],[.92,-300],[.96,-50],[1,0]], {noise:60, spikes:[{pct:0.18,amp:-1900,width:0.01},{pct:0.62,amp:-2700,width:0.012}]}) },
-  roll:      { name:"Roll",       units:"°",   color:"#6DEB5D", group:"attitude",decimals:1,
+  roll:      { name:"Roll",       units:"°",   color:"#6DEB5D", group:"attitude",decimals:1, scale:"deg",
     series: gen(N, [[0,0],[.22,0],[.5,0],[.62,0],[1,0]], {noise:1.4, spikes:[{pct:0.31,amp:25,width:0.013}]}) },
-  heading:   { name:"Heading",    units:"°",   color:"#7FA8B8", group:"nav",     decimals:0,
+  heading:   { name:"Heading",    units:"°",   color:"#7FA8B8", group:"nav",     decimals:0, scale:"hdg",
     series: gen(N, [[0,10],[.12,15],[.22,55],[.4,80],[.62,90],[.82,120],[.92,138],[1,140]], {noise:0.8}) },
-  gasTemp1:  { name:"Gas Temp (1)", units:"°C", color:"#FF6019", group:"engine", decimals:1,
+  gasTemp1:  { name:"Gas Temp (1)", units:"°C", color:"#FF6019", group:"engine", decimals:1, scale:"°C",
     series: gen(N, [[0,80],[.04,140],[.08,210],[.12,225],[.22,178],[.62,176],[.82,200],[.92,205],[.96,150],[1,90]], {noise:2.1}) },
-  gasTemp2:  { name:"Gas Temp (2)", units:"°C", color:"#F9F46E", group:"engine", decimals:1,
+  gasTemp2:  { name:"Gas Temp (2)", units:"°C", color:"#F9F46E", group:"engine", decimals:1, scale:"°C",
     series: gen(N, [[0,80],[.04,140],[.08,210],[.12,224],[.22,177],[.62,175],[.82,199],[.92,204],[.96,150],[1,90]], {noise:2.1}) },
-  eng1N1:    { name:"Eng (1) N1",   units:"%",  color:"#28C8B9", group:"engine", decimals:1,
+  eng1N1:    { name:"Eng (1) N1",   units:"%",  color:"#28C8B9", group:"engine", decimals:1, scale:"%",
     series: gen(N, [[0,20],[.04,55],[.08,82],[.12,86],[.22,72],[.62,73],[.82,80],[.92,82],[.96,55],[1,22]], {noise:0.7}) },
-  eng2N1:    { name:"Eng (2) N1",   units:"%",  color:"#6DEB5D", group:"engine", decimals:1,
+  eng2N1:    { name:"Eng (2) N1",   units:"%",  color:"#6DEB5D", group:"engine", decimals:1, scale:"%",
     series: gen(N, [[0,20],[.04,55],[.08,81],[.12,85],[.22,71],[.62,72],[.82,79],[.92,81],[.96,55],[1,22]], {noise:0.7}) },
 };
 
@@ -2506,8 +2548,9 @@ function renderFinder() {
 }
 
 /* — Highlight every graph card that uses a given parameter — */
-/* — Hover-to-isolate: dim every line in the card except `pid` ────────── */
+/* — Hover-to-isolate: dim every line + non-matching axis in the card ─── */
 function focusParamInCard(card, pid) {
+  const focusedScale = PARAMETERS[pid]?.scale;
   card.querySelectorAll("svg polyline[data-pid]").forEach(line => {
     const match = line.dataset.pid === pid;
     line.style.opacity = match ? "1" : "0.15";
@@ -2515,6 +2558,9 @@ function focusParamInCard(card, pid) {
   });
   card.querySelectorAll(".graph-card__legend-item").forEach(item => {
     item.style.opacity = item.dataset.pid === pid ? "1" : "0.4";
+  });
+  card.querySelectorAll(".graph-card__y-axis").forEach(ax => {
+    ax.style.opacity = ax.dataset.scale === focusedScale ? "1" : "0.25";
   });
 }
 function unfocusParamsInCard(card) {
@@ -2524,6 +2570,9 @@ function unfocusParamsInCard(card) {
   });
   card.querySelectorAll(".graph-card__legend-item").forEach(item => {
     item.style.opacity = "";
+  });
+  card.querySelectorAll(".graph-card__y-axis").forEach(ax => {
+    ax.style.opacity = "";
   });
 }
 
@@ -2574,6 +2623,20 @@ const PARAM_COLORS = {
   vsi:        "#00D9FF", // cyan (new)
 };
 const colorForParam = (pid) => PARAM_COLORS[pid] || "#FFFFFF";
+
+/* — Scale axes ────────────────────────────────────────────────────────────
+   Each parameter is tagged with a `scale`. A chart shows up to TWO axes,
+   stacked side-by-side on the left. The picker disables params that would
+   push a chart over its 2-scale budget.                                    */
+const SCALE_LABEL = {
+  "ft":  "ft",
+  "kt":  "kt",
+  "%":   "%",
+  "deg": "°",
+  "fpm": "fpm",
+  "°C":  "°C",
+  "hdg": "° hdg",
+};
 
 /* — Add / remove graph cards (driven by Finder clicks) — */
 function addGraphForParam(pid) {
@@ -2629,37 +2692,61 @@ function openAddParamMenu(graphIdx, anchorBtn) {
   // Close any open menu first
   document.querySelectorAll(".add-param-menu").forEach(m => m.remove());
 
-  const inGraph = new Set((GRAPHS[graphIdx] || {}).params || []);
   const menu = document.createElement("div");
   menu.className = "add-param-menu";
 
   // Group parameters by their `group` field for legibility
-  const groups = {};
+  const allGroups = {};
   Object.entries(PARAMETERS).forEach(([id, p]) => {
-    (groups[p.group] = groups[p.group] || []).push([id, p]);
+    (allGroups[p.group] = allGroups[p.group] || []).push([id, p]);
   });
   const groupTitles = { alt:"Altitude / Speed", power:"Power", attitude:"Attitude", engine:"Engines", nav:"Navigation" };
 
-  let html = `<div class="add-param-menu__title">Add parameter</div>`;
-  for (const [gKey, items] of Object.entries(groups)) {
-    html += `<div class="add-param-menu__group">${groupTitles[gKey] || gKey}</div>`;
-    for (const [id, p] of items) {
-      const has = inGraph.has(id);
-      html += `<button class="add-param-item${has?" is-in":""}" data-pid="${id}" ${has?"disabled":""}>
-        <span class="add-param-item__name">${p.name}</span>
-        <span class="add-param-item__units">${p.units}</span>
-        ${has ? `<span class="add-param-item__check">✓</span>` : `<span class="add-param-item__plus">+</span>`}
-      </button>`;
-    }
-  }
-  menu.innerHTML = html;
+  function buildItemsHtml() {
+    const inGraph = new Set((GRAPHS[graphIdx] || {}).params || []);
+    const usedScales = new Set([...inGraph].map(pid => PARAMETERS[pid].scale));
+    const atScaleLimit = usedScales.size >= 2;
 
+    let html = `<div class="add-param-menu__title">Edit parameters</div>`;
+    for (const [gKey, items] of Object.entries(allGroups)) {
+      html += `<div class="add-param-menu__group">${groupTitles[gKey] || gKey}</div>`;
+      for (const [id, p] of items) {
+        const has = inGraph.has(id);
+        const blocked = !has && atScaleLimit && !usedScales.has(p.scale);
+        const hint = has ? `<span class="add-param-item__check" aria-label="In graph">✓</span><span class="add-param-item__remove" aria-hidden="true">×</span>`
+                   : blocked ? `<span class="add-param-item__locked" title="Chart already uses 2 scales (${[...usedScales].join(', ')}) — remove a parameter to switch scales">scale full</span>`
+                   : `<span class="add-param-item__plus">+</span>`;
+        const title = has ? "Click to remove from graph" : blocked ? "Scale slot full" : "Click to add";
+        html += `<button class="add-param-item${has?" is-in":""}${blocked?" is-blocked":""}" data-pid="${id}" ${blocked?"disabled":""} title="${title}">
+          <span class="add-param-item__name">${p.name}</span>
+          <span class="add-param-item__units">${p.units}</span>
+          ${hint}
+        </button>`;
+      }
+    }
+    return html;
+  }
+  menu.innerHTML = buildItemsHtml();
+
+  // Any click anywhere inside the menu is treated as "inside" and must NOT
+  // bubble to the document-level close handler — otherwise after we rebuild
+  // innerHTML the original target is detached and `menu.contains(target)`
+  // returns false, which closes the menu.
+  menu.addEventListener("click", e => e.stopPropagation());
+
+  // Click handler delegates from the menu element — survives innerHTML rebuilds
   menu.addEventListener("click", e => {
     const btn = e.target.closest(".add-param-item");
-    if (btn && !btn.disabled) {
-      addParamToGraph(graphIdx, btn.dataset.pid);
-      menu.remove();
+    if (!btn || btn.disabled) return;
+    const pid = btn.dataset.pid;
+    if (btn.classList.contains("is-in")) {
+      removeParamFromGraph(graphIdx, pid);
+    } else {
+      addParamToGraph(graphIdx, pid);
     }
+    // Refresh the menu in place so checkmarks / blocked states update,
+    // and the menu stays open for further toggling.
+    menu.innerHTML = buildItemsHtml();
   });
 
   menu.style.position = "fixed";
@@ -2793,17 +2880,40 @@ function renderGraphs() {
 
     // plot
     const plot = el("div", "graph-card__plot");
-    const yAxis = el("div", "graph-card__y-axis");
 
-    // compute y-range from all params in this graph (also used by lines below)
-    let yMin = 0, yMax = 1;
-    if (g.params.length > 0) {
-      const allVals = g.params.flatMap(pid => PARAMETERS[pid].series);
-      yMin = Math.min(...allVals); yMax = Math.max(...allVals);
-      const labels = (g.yAxis && g.yAxis.length) ? g.yAxis : autoYLabels(yMin, yMax);
-      labels.forEach(y => yAxis.appendChild(el("span", "graph-card__y-label", y)));
-      plot.appendChild(yAxis);
+    // Determine the distinct scales in this graph (max 2, in insertion order)
+    const scales = [];
+    g.params.forEach(pid => {
+      const s = PARAMETERS[pid].scale;
+      if (!scales.includes(s)) scales.push(s);
+    });
+
+    // Y-range per scale, computed only from params using that scale
+    const yRangeByScale = {};
+    scales.forEach(s => {
+      const vals = g.params
+        .filter(pid => PARAMETERS[pid].scale === s)
+        .flatMap(pid => PARAMETERS[pid].series);
+      yRangeByScale[s] = { yMin: Math.min(...vals), yMax: Math.max(...vals) };
+    });
+
+    // Render a Y-axis column per scale, side by side on the left
+    if (scales.length > 0) {
+      const yAxes = el("div", "graph-card__y-axes");
+      scales.forEach(s => {
+        const ax = el("div", "graph-card__y-axis");
+        ax.dataset.scale = s;
+        const { yMin, yMax } = yRangeByScale[s];
+        autoYLabels(yMin, yMax).forEach(y => ax.appendChild(el("span", "graph-card__y-label", y)));
+        ax.appendChild(el("span", "graph-card__y-unit", SCALE_LABEL[s] || s));
+        yAxes.appendChild(ax);
+      });
+      plot.appendChild(yAxes);
     }
+
+    // Plot area sits beside the y-axes; lines, events, and playhead live INSIDE it
+    // so they never extend behind the axis labels.
+    const plotArea = el("div", "graph-card__plot-area");
 
     // event lines
     FLIGHT.events.forEach(ev => {
@@ -2811,22 +2921,21 @@ function renderGraphs() {
       line.style.left = (ev.pct*100) + "%";
       line.title = `${ev.code} · ${pctToTime(ev.pct)}`;
       line.addEventListener("click", () => seekTo(ev.pct));
-      plot.appendChild(line);
+      plotArea.appendChild(line);
     });
 
-    // svg series
+    // svg series — each line plotted against its OWN scale's range
     const placeholder = el("div", "graph-placeholder");
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 500 80");
     svg.setAttribute("preserveAspectRatio", "none");
 
-    // y-range already computed above (yMin/yMax)
-    const ySpan = (yMax - yMin) || 1;
-    const yPad = ySpan * 0.08;
-
     g.params.forEach((pid) => {
       const p = PARAMETERS[pid];
       const color = colorForParam(pid);
+      const { yMin, yMax } = yRangeByScale[p.scale];
+      const ySpan = (yMax - yMin) || 1;
+      const yPad = ySpan * 0.08;
       const pts = p.series.map((v, k) => {
         const x = (k/(N-1)) * 500;
         const y = 80 - ((v - yMin + yPad) / (ySpan + yPad*2)) * 80;
@@ -2842,13 +2951,14 @@ function renderGraphs() {
       svg.appendChild(line);
     });
     placeholder.appendChild(svg);
-    plot.appendChild(placeholder);
+    plotArea.appendChild(placeholder);
 
-    // playhead
+    // playhead inside the plot-area so it tracks the actual plot rect
     const ph = el("div", "graph-playhead");
     ph.dataset.playhead = "1";
-    plot.appendChild(ph);
+    plotArea.appendChild(ph);
 
+    plot.appendChild(plotArea);
     card.appendChild(plot);
     root.appendChild(card);
   });
@@ -3364,7 +3474,15 @@ function setupSidebarPopovers() {
   const popovers = $$(".sidebar__popover");
   function close() {
     btns.forEach(b => b.classList.remove("is-active"));
-    popovers.forEach(p => p.classList.remove("is-open"));
+    popovers.forEach(p => {
+      p.classList.remove("is-open");
+      // Reset any inline positioning we applied for the collapsed state
+      p.style.position = "";
+      p.style.left = "";
+      p.style.right = "";
+      p.style.top = "";
+      p.style.bottom = "";
+    });
   }
   btns.forEach(btn => {
     btn.addEventListener("click", e => {
@@ -3373,11 +3491,30 @@ function setupSidebarPopovers() {
       const pop = popovers.find(p => p.dataset.popoverFor === target);
       const wasOpen = btn.classList.contains("is-active");
       close();
-      if (!wasOpen) { btn.classList.add("is-active"); pop.classList.add("is-open"); }
+      if (!wasOpen) {
+        btn.classList.add("is-active");
+        pop.classList.add("is-open");
+        positionSidebarPopover(pop, btn);
+      }
     });
   });
   popovers.forEach(p => p.addEventListener("click", e => e.stopPropagation()));
   document.addEventListener("click", close);
+}
+
+function positionSidebarPopover(pop, btn) {
+  const sidebar = document.getElementById("sidebar");
+  if (!sidebar.classList.contains("is-collapsed")) return; // default CSS works
+  // Anchor next to the icon, escaping the sidebar's overflow:hidden
+  const sRect = sidebar.getBoundingClientRect();
+  const bRect = btn.getBoundingClientRect();
+  pop.style.position = "fixed";
+  pop.style.left   = (sRect.right + 6) + "px";
+  pop.style.right  = "auto";
+  pop.style.bottom = "auto";
+  // Vertical: bottom of popover aligned with bottom of button (so it pops upward)
+  const h = pop.offsetHeight || 200;
+  pop.style.top = Math.max(8, bRect.bottom - h) + "px";
 }
 
 function setupLayoutOptions() {
