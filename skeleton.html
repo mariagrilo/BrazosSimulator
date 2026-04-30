@@ -29,7 +29,7 @@
 
       /* Layout */
       --topbar-height:     56px;
-      --timeline-height:   72px;
+      --timeline-height:   76px;
       --sidebar-width:     260px;
       --sidebar-collapsed: 52px;
       --panel-gap:         1px;       /* gap doubles as a divider line */
@@ -171,6 +171,34 @@
       z-index: 90;
     }
 
+    /* Flight context block (left of playback controls) */
+    .timeline-bar__flight {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      flex-shrink: 0;
+      font-family: var(--font-label);
+    }
+    .timeline-bar__flight-id {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text);
+      letter-spacing: 0.02em;
+    }
+    .timeline-bar__flight-aircraft {
+      font-size: 10px;
+      color: var(--color-text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .timeline-bar__sep {
+      width: 1px;
+      height: 32px;
+      background: var(--color-border);
+      margin: 0 16px;
+      flex-shrink: 0;
+    }
+
     /* Playback controls */
     .timeline-bar__controls {
       display: flex;
@@ -276,33 +304,51 @@
       border-radius: 50%;
     }
 
-    /* Current time readout */
+    /* Current time readout — sits BELOW the track, anchored to the playhead */
     .timeline-bar__current {
       position: absolute;
       left: 28%;
-      top: -22px;
+      top: 38px;
       transform: translateX(-50%);
       font-family: var(--font-label);
       font-size: 10px;
       font-weight: 500;
-      color: var(--color-accent);
+      color: var(--color-bg);
+      background: var(--color-accent);
       letter-spacing: 0.04em;
       white-space: nowrap;
       pointer-events: none;
+      padding: 2px 7px;
+      border-radius: 2px;
+      z-index: 6;
+    }
+    .timeline-bar__current::before {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 4px solid var(--color-accent);
     }
 
-    /* Event markers on the track */
+    /* Event markers — pin glyphs sitting INSIDE the timeline track,
+       tip aligned with the event time */
     .event-marker {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      border-radius: 2px;
+      top: 4px;            /* sits inside the 32px track */
+      width: 14px;
+      height: 24px;
       transform: translateX(-50%);
       cursor: pointer;
-      transition: width 0.1s, opacity 0.1s;
+      z-index: 5;
+      transition: transform 0.12s ease;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
     }
-    .event-marker:hover { width: 5px; }
+    .event-marker svg { display: block; width: 100%; height: 100%; }
+    .event-marker:hover { transform: translateX(-50%) translateY(-2px); }
     .event-marker::after {
       content: attr(data-label);
       position: absolute;
@@ -315,18 +361,15 @@
       font-family: var(--font-label);
       font-size: 10px;
       font-weight: 500;
-      padding: 3px 6px;
+      padding: 4px 7px;
       border-radius: 3px;
       white-space: nowrap;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.1s;
+      transition: opacity 0.12s;
+      z-index: 6;
     }
     .event-marker:hover::after { opacity: 1; }
-
-    .event-marker.level-3 { background: var(--color-level-3); }
-    .event-marker.level-2 { background: var(--color-level-2); }
-    .event-marker.level-1 { background: var(--color-level-1); }
 
     /* Tick marks */
     .timeline-bar__ticks {
@@ -375,6 +418,7 @@
       flex-direction: column;
       overflow: hidden;
       transition: width 0.2s ease;
+      position: relative; /* anchor for popovers */
     }
     .sidebar.is-collapsed { width: var(--sidebar-collapsed); }
 
@@ -399,42 +443,47 @@
     }
     .sidebar__toggle-btn:hover { background: var(--color-surface-hi); color: var(--color-text); }
 
-    .sidebar__section {
-      border-bottom: 1px solid var(--color-border);
-      flex-shrink: 0;
+    /* Finder — primary tool, fills available vertical space */
+    .finder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
     }
-
-    .sidebar__section-header {
+    .finder__title {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 10px 14px;
+      padding: 12px 14px 10px;
       font-family: var(--font-label);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--color-text-muted);
-      cursor: pointer;
-    }
-    .sidebar.is-collapsed .sidebar__section-header { justify-content: center; padding: 12px; }
-    .sidebar.is-collapsed .sidebar__section-label,
-    .sidebar.is-collapsed .sidebar__section-body { display: none; }
-
-    .sidebar__section-icon {
-      width: 16px;
-      height: 16px;
+      color: var(--color-text);
       flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--color-text-dim);
     }
-    .sidebar.is-collapsed .sidebar__section-icon { color: var(--color-accent); }
-
-    .sidebar__section-body {
+    .finder__search-wrap {
+      padding: 0 14px 10px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .finder__scope-label {
+      font-family: var(--font-label);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin: 8px 0 4px;
+    }
+    .finder__results {
+      flex: 1;
+      overflow-y: auto;
       padding: 8px 14px 12px;
+      min-height: 0;
     }
+    .sidebar.is-collapsed .finder { display: none; }
 
     /* Search */
     .sidebar__search {
@@ -506,20 +555,85 @@
     }
     .finder-item:hover { background: var(--color-surface-hi); color: var(--color-text); }
     .finder-item__dot {
-      width: 6px;
-      height: 6px;
+      position: relative;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .finder-item__dot--hollow {
+      background: transparent;
+      border: 1px dashed var(--color-text-muted);
+    }
+    .finder-item.is-addable:hover .finder-item__dot--hollow {
+      border-style: solid;
+      border-color: var(--color-accent);
+      background: rgba(40,200,185,0.12);
+    }
+    .finder-item.is-addable:hover .finder-item__dot--hollow::after {
+      content: "+";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-label);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--color-accent);
+      line-height: 1;
+    }
+    .finder-item.is-on-graph .finder-item__meta {
+      color: var(--color-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 9px;
+    }
+    .finder-item.is-on-graph .finder-item__dot--hollow {
+      border-style: solid;
+      border-color: var(--color-accent);
+      background: rgba(40,200,185,0.15);
+    }
+    .finder-item.is-on-graph .finder-item__dot--hollow::after {
+      content: "✓";
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--color-accent);
+      line-height: 1;
+    }
+
+    /* Brief flash when a chart is referenced from the Finder */
+    .graph-card.is-flash {
+      animation: card-flash 0.9s ease-out;
+    }
+    @keyframes card-flash {
+      0%   { box-shadow: 0 0 0 1px rgba(40,200,185,0); }
+      30%  { box-shadow: 0 0 0 3px rgba(40,200,185,0.55); border-color: var(--color-accent); }
+      100% { box-shadow: 0 0 0 1px rgba(40,200,185,0); }
+    }
+    .finder-item__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .finder-item__meta {
+      font-family: var(--font-label);
+      font-size: 10px;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
       flex-shrink: 0;
     }
 
     /* Layout selector */
     .layout-options {
       display: flex;
-      gap: 6px;
+      gap: 8px;
     }
     .layout-option {
       flex: 1;
-      aspect-ratio: 16/9;
+      min-width: 70px;
+      padding: 12px 8px 10px;
       border: 1px solid var(--color-border);
       border-radius: 4px;
       display: flex;
@@ -529,17 +643,19 @@
       transition: all 0.15s;
       font-family: var(--font-label);
       font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       color: var(--color-text-muted);
       flex-direction: column;
-      gap: 3px;
+      gap: 8px;
     }
     .layout-option:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .layout-option.is-active { border-color: var(--color-accent); background: rgba(40,200,185,0.08); color: var(--color-accent); }
     .layout-option__icon {
-      width: 28px;
-      height: 16px;
+      width: 44px;
+      height: 26px;
       display: flex;
-      gap: 2px;
+      gap: 3px;
     }
     .layout-option__pane {
       flex: 1;
@@ -549,24 +665,93 @@
     }
     .layout-option__pane.is-active { opacity: 1; }
 
-    /* Sidebar bottom — template manager link */
+    /* Sidebar footer — icon strip with Layout / Templates */
     .sidebar__footer {
-      margin-top: auto;
-      padding: 12px 14px;
+      display: flex;
+      flex-shrink: 0;
       border-top: 1px solid var(--color-border);
+      background: var(--color-surface);
     }
-    .sidebar.is-collapsed .sidebar__footer { display: none; }
-    .sidebar__footer-link {
+    .sidebar__footer-btn {
+      flex: 1;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      font-size: 13px;
+      padding: 12px 8px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       color: var(--color-text-dim);
       cursor: pointer;
-      padding: 6px;
-      border-radius: 4px;
+      transition: all 0.15s;
     }
-    .sidebar__footer-link:hover { background: var(--color-surface-hi); color: var(--color-text); }
+    .sidebar__footer-btn + .sidebar__footer-btn { border-left: 1px solid var(--color-border); }
+    .sidebar__footer-btn:hover { background: var(--color-surface-hi); color: var(--color-text); }
+    .sidebar__footer-btn.is-active { color: var(--color-accent); background: rgba(40,200,185,0.06); }
+    .sidebar.is-collapsed .sidebar__footer { flex-direction: column; }
+    .sidebar.is-collapsed .sidebar__footer-btn + .sidebar__footer-btn { border-left: none; border-top: 1px solid var(--color-border); }
+    .sidebar.is-collapsed .sidebar__footer-btn span { display: none; }
+
+    /* Popovers anchored above the footer — content-width, not full sidebar */
+    .sidebar__popover {
+      position: absolute;
+      bottom: 50px;
+      width: max-content;
+      max-width: calc(100% - 16px);
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
+      padding: 12px;
+      display: none;
+      z-index: 50;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+    .sidebar__popover.is-open { display: block; }
+    .sidebar__popover[data-popover-for="layout"]    { left: 8px;   min-width: 220px; }
+    .sidebar__popover[data-popover-for="templates"] { right: 8px;  min-width: 240px; }
+    .sidebar__popover-title {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 10px;
+    }
+    .template-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .template-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      text-align: left;
+      cursor: pointer;
+    }
+    .template-item:hover { border-color: var(--color-accent); color: var(--color-text); }
+    .template-item em {
+      font-family: var(--font-label);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      font-style: normal;
+    }
+    .template-item--add {
+      justify-content: center;
+      color: var(--color-accent);
+      border-style: dashed;
+    }
 
     /* ─── Main Panels ───────────────────────────────────────────────────── */
     .panels {
@@ -684,12 +869,104 @@
       color: var(--color-text-muted);
     }
     .graph-card__action-btn:hover { background: var(--color-surface-hi); color: var(--color-text-dim); }
+    .graph-card__add:hover { color: var(--color-accent); }
+    .graph-card__close:hover { background: rgba(255,96,25,0.15); color: var(--color-level-3); }
+
+    /* Per-parameter remove (×) inside legend items */
+    .graph-card__legend-name { white-space: nowrap; }
+    .legend-remove {
+      width: 16px; height: 16px;
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-muted);
+      opacity: 0;
+      transition: opacity 0.12s, color 0.12s, background 0.12s;
+      cursor: pointer;
+    }
+    .graph-card__legend-item:hover .legend-remove { opacity: 1; }
+    .legend-remove:hover { color: var(--color-level-3); background: rgba(255,96,25,0.12); }
+
+    /* Add-parameter dropdown menu */
+    .add-param-menu {
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
+      padding: 6px;
+      min-width: 240px;
+      max-width: 320px;
+      max-height: 60vh;
+      overflow-y: auto;
+      z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    }
+    .add-param-menu__title {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      padding: 4px 8px 6px;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 4px;
+    }
+    .add-param-menu__group {
+      font-family: var(--font-label);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      padding: 6px 8px 2px;
+    }
+    .add-param-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 3px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      text-align: left;
+      cursor: pointer;
+    }
+    .add-param-item:hover:not(:disabled) {
+      background: rgba(40,200,185,0.10);
+      color: var(--color-text);
+    }
+    .add-param-item:disabled,
+    .add-param-item.is-in {
+      cursor: default;
+      color: var(--color-text-muted);
+    }
+    .add-param-item__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .add-param-item__units {
+      font-family: var(--font-label);
+      font-size: 10px;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
+    }
+    .add-param-item__plus {
+      font-family: var(--font-label);
+      font-size: 14px;
+      color: var(--color-accent);
+      width: 14px; text-align: center;
+    }
+    .add-param-item__check {
+      font-size: 11px;
+      color: var(--color-accent);
+      width: 14px; text-align: center;
+    }
 
     .graph-card__plot {
       height: 120px;
       position: relative;
       background: var(--color-bg);
     }
+
+    /* Smooth fade for hover-to-isolate on chart lines + legend */
+    .graph-placeholder svg polyline,
+    .graph-card__legend-item { transition: opacity 0.15s ease, stroke-width 0.15s ease; }
 
     /* Placeholder graph lines */
     .graph-placeholder {
@@ -754,6 +1031,45 @@
       transition: all 0.15s;
     }
     .graph-drop-zone:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(40,200,185,0.04); }
+    .graph-drop-zone { font: inherit; font-family: var(--font-body); }
+
+    /* Empty graph CTA — opens the param picker */
+    .graph-card__empty-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border: 1px dashed var(--color-accent);
+      border-radius: 100px;
+      background: rgba(40,200,185,0.06);
+      color: var(--color-accent);
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .graph-card__empty-cta:hover { background: rgba(40,200,185,0.14); }
+
+    /* ─── Third pane (3-up layout: dedicated Tabular column) ─────────────── */
+    .third-pane {
+      flex: 1 1 30%;
+      min-width: 240px;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-bg);
+      overflow: hidden;
+    }
+    .third-pane__content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* When tabular content is parented here, it's always visible */
+    #third-pane-content > .panel-content { display: flex; }
 
     /* ─── Right Panel (Visualizer + Map) ─────────────────────────────────── */
     .right-panel {
@@ -776,11 +1092,39 @@
     }
 
     .visualizer-area {
-      flex: 1;
+      flex: 1 1 55%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      min-height: 200px;
     }
+    /* Instruments pane stacks under the visualizer */
+    .instruments-pane {
+      flex: 1 1 45%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 240px;
+      background: var(--color-bg);
+    }
+    /* Tabbed: PFD and Engines swap inside instruments-content */
+    .instruments-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .instruments-content > [data-itab] {
+      position: absolute;
+      inset: 0;
+      margin: 10px;
+      overflow: auto;
+    }
+    /* Hide non-active panes; let active panes keep their natural display
+       (.pfd is grid, .engines is flex) */
+    .instruments-content > [data-itab]:not(.is-active) { display: none; }
+    .instruments-pane .pfd { gap: 8px; }
+    .instruments-pane .engines { gap: 12px; }
 
     .visualizer-pane {
       flex: 1;
@@ -990,35 +1334,161 @@
     .tabular-table tr.is-current td { background: rgba(40,200,185,0.08); color: var(--color-text); }
     .tabular-scroll { flex: 1; overflow: auto; padding: 0 8px; }
 
-    /* Status panel cards */
-    .status-grid {
+    /* Status — hierarchical page (hero · route · events · approaches) */
+    .status-page { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Hero — severity-led summary */
+    .status-hero {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      padding: 16px;
-      overflow: auto;
-    }
-    .status-card {
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 18px 20px;
+      border-radius: 8px;
+      border-left: 4px solid var(--color-level-1);
       background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      padding: 12px 14px;
     }
-    .status-card__label {
+    .status-hero--level-2 { border-left-color: var(--color-level-2); }
+    .status-hero--level-3 { border-left-color: var(--color-level-3); }
+    .status-hero__verdict {
+      font-family: var(--font-label);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: 8px;
+    }
+    .status-hero__counts { display: flex; gap: 14px; flex-wrap: wrap; }
+    .status-count {
+      font-family: var(--font-label);
+      font-size: 11px;
+      color: var(--color-text-muted);
+      letter-spacing: 0.04em;
+    }
+    .status-count b { color: var(--color-text); font-size: 14px; font-weight: 500; margin-right: 4px; }
+    .status-count.level-3 b { color: var(--color-level-3); }
+    .status-count.level-2 b { color: var(--color-level-2); }
+    .status-count.level-1 b { color: var(--color-level-1); }
+    .status-hero__id { text-align: right; }
+    .status-hero__id-flight {
+      font-family: var(--font-label);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .status-hero__id-aircraft {
       font-family: var(--font-label);
       font-size: 10px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--color-text-muted);
-      margin-bottom: 6px;
+      margin-top: 2px;
     }
-    .status-card__value {
+
+    /* Route — secondary fact strip */
+    .status-route {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 12px 18px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-surface);
+    }
+    .status-route__leg { display: flex; flex-direction: column; gap: 2px; }
+    .status-route__leg--right { margin-left: auto; text-align: right; }
+    .status-route__label {
       font-family: var(--font-label);
-      font-size: 22px;
-      font-weight: 500;
-      color: var(--color-text);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
     }
-    .status-card__sub { font-size: 11px; color: var(--color-text-dim); margin-top: 4px; }
+    .status-route__place { font-size: 14px; color: var(--color-text); }
+    .status-route__arrow { color: var(--color-accent); font-size: 16px; }
+
+    /* Tertiary section blocks */
+    .status-section {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .status-section__title {
+      padding: 12px 18px 10px;
+      margin: 0;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-section__count {
+      font-size: 11px;
+      color: var(--color-text-dim);
+      background: var(--color-bg);
+      padding: 1px 7px;
+      border-radius: 100px;
+      letter-spacing: 0;
+    }
+
+    /* Events table */
+    .status-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .status-table th, .status-table td {
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .status-table th {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      background: var(--color-bg);
+    }
+    .status-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .status-table tbody tr:hover { background: var(--color-surface-hi); }
+    .status-table tbody tr:last-child td { border-bottom: none; }
+    .status-table__time { font-family: var(--font-label); font-weight: 500; color: var(--color-accent); }
+    .status-table__sev { width: 50px; }
+    .status-table__num { text-align: right; font-family: var(--font-label); }
+    .sev-pill {
+      display: inline-block;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+    .sev-pill.level-3 { background: var(--color-level-3); color: var(--color-bg); }
+    .sev-pill.level-2 { background: var(--color-level-2); color: var(--color-bg); }
+    .sev-pill.level-1 { background: var(--color-level-1); color: var(--color-bg); }
+
+    /* Approaches list */
+    .status-approach-list { display: flex; flex-direction: column; }
+    .status-approach {
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 16px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background 0.1s;
+      align-items: center;
+    }
+    .status-approach:hover { background: var(--color-surface-hi); }
+    .status-approach:last-child { border-bottom: none; }
+    .status-approach__id { font-family: var(--font-label); font-size: 11px; color: var(--color-text-muted); }
+    .status-approach__name { color: var(--color-text); font-weight: 500; }
+    .status-approach__meta { font-size: 12px; color: var(--color-text-dim); }
+    .status-approach__td { font-family: var(--font-label); font-size: 12px; color: var(--color-accent); }
 
     /* Approaches list */
     .approach-list { padding: 16px; overflow: auto; flex: 1; }
@@ -1074,17 +1544,10 @@
       grid-template-columns: 70px 1fr 70px 50px;
       grid-template-rows: 1fr 44px;
       gap: 8px;
-      padding: 28px 14px 14px;
+      padding: 14px;
       position: relative;
       overflow: hidden;
       min-height: 0;
-    }
-    .pfd::before {
-      content: 'Primary Flight Display';
-      position: absolute; top: 8px; left: 14px;
-      font-family: var(--font-label); font-size: 10px;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--color-text-muted);
     }
 
     /* Tape (speed/altitude) */
@@ -1113,12 +1576,21 @@
     .tape__readout--left  { left: 0;  border-radius: 0 2px 2px 0; }
     .tape__readout--right { right: 0; border-radius: 2px 0 0 2px; }
     .tape__label {
-      position: absolute; top: 4px; left: 0; right: 0;
+      position: absolute; top: 0; left: 0; right: 0;
       text-align: center;
       font-family: var(--font-label); font-size: 9px;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--color-text-muted);
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border);
+      padding: 5px 4px 4px;
       pointer-events: none;
+      z-index: 3;
+    }
+    .tape__label--bottom {
+      top: auto; bottom: 0;
+      border-bottom: none;
+      border-top: 1px solid var(--color-border);
     }
 
     /* Attitude indicator */
@@ -1220,19 +1692,12 @@
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 8px;
-      padding: 28px 14px 14px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       gap: 14px;
       overflow: auto;
       position: relative;
-    }
-    .engines::before {
-      content: 'Engines';
-      position: absolute; top: 8px; left: 14px;
-      font-family: var(--font-label); font-size: 10px;
-      letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--color-text-muted);
     }
     .engines__col-headers {
       display: grid;
@@ -1404,6 +1869,13 @@
   <!-- ② TIMELINE BAR ─────────────────────────────────────────────────────── -->
   <div class="timeline-bar">
 
+    <!-- Flight context -->
+    <div class="timeline-bar__flight">
+      <div class="timeline-bar__flight-id">Flight #46309524</div>
+      <div class="timeline-bar__flight-aircraft" id="flight-aircraft">—</div>
+    </div>
+    <div class="timeline-bar__sep"></div>
+
     <!-- Playback -->
     <div class="timeline-bar__controls">
       <button class="playback-btn" id="btn-prev" title="Previous event">
@@ -1464,25 +1936,24 @@
         </button>
       </div>
 
-      <!-- Finder section -->
-      <div class="sidebar__section">
-        <div class="sidebar__section-header">
-          <span class="sidebar__section-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" opacity="0.7">
-              <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="sidebar__section-label">Find Parameters</span>
+      <!-- Finder fills the available height — primary tool -->
+      <div class="finder">
+        <div class="finder__title">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" opacity="0.7">
+            <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <span>Finder</span>
         </div>
-        <div class="sidebar__section-body">
+        <div class="finder__search-wrap">
           <div class="sidebar__search">
             <svg class="sidebar__search-icon" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
               <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
             </svg>
-            <input class="sidebar__search-input" type="text" placeholder="Search…">
+            <input class="sidebar__search-input" type="text" placeholder="Search events, parameters, phases…">
           </div>
+          <div class="finder__scope-label">Search in</div>
           <div class="sidebar__filters" id="finder-filters">
             <button class="filter-toggle is-active" data-filter="Event">Event</button>
             <button class="filter-toggle is-active" data-filter="Parm">Parm</button>
@@ -1490,56 +1961,64 @@
             <button class="filter-toggle is-active" data-filter="KPV">KPV</button>
             <button class="filter-toggle is-active" data-filter="Phase">Phase</button>
           </div>
-          <div id="finder-results"></div>
         </div>
+        <div class="finder__results" id="finder-results"></div>
       </div>
 
-      <!-- Layout section -->
-      <div class="sidebar__section">
-        <div class="sidebar__section-header">
-          <span class="sidebar__section-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.7">
-              <rect x="1" y="1" width="5.5" height="12" rx="1"/>
-              <rect x="7.5" y="1" width="5.5" height="5.5" rx="1"/>
-              <rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
-            </svg>
-          </span>
-          <span class="sidebar__section-label">Layout</span>
-        </div>
-        <div class="sidebar__section-body">
-          <div class="layout-options">
-            <button class="layout-option" title="Graphs only">
-              <div class="layout-option__icon">
-                <div class="layout-option__pane is-active" style="flex:1"></div>
-              </div>
-              <span>Full</span>
-            </button>
-            <button class="layout-option is-active" title="Graphs + 3D">
-              <div class="layout-option__icon">
-                <div class="layout-option__pane is-active"></div>
-                <div class="layout-option__pane is-active"></div>
-              </div>
-              <span>Split</span>
-            </button>
-            <button class="layout-option" title="3 panels">
-              <div class="layout-option__icon">
-                <div class="layout-option__pane is-active"></div>
-                <div class="layout-option__pane is-active"></div>
-                <div class="layout-option__pane is-active"></div>
-              </div>
-              <span>3-up</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="sidebar__footer">
-        <div class="sidebar__footer-link">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.6">
+      <!-- Footer: rarely-touched settings as icon buttons -->
+      <div class="sidebar__footer" id="sidebar-footer">
+        <button class="sidebar__footer-btn" data-popover="layout">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="1" y="1" width="5.5" height="12" rx="1"/>
+            <rect x="7.5" y="1" width="5.5" height="5.5" rx="1"/>
+            <rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+          </svg>
+          <span>Layout</span>
+        </button>
+        <button class="sidebar__footer-btn" data-popover="templates">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
             <rect x="1" y="1" width="12" height="12" rx="2"/>
             <path d="M4 5h6M4 7.5h4"/>
           </svg>
-          Templates
+          <span>Templates</span>
+        </button>
+      </div>
+
+      <!-- Popovers anchored to the sidebar footer -->
+      <div class="sidebar__popover" data-popover-for="layout">
+        <div class="sidebar__popover-title">Layout</div>
+        <div class="layout-options">
+          <button class="layout-option" title="Graphs only">
+            <div class="layout-option__icon">
+              <div class="layout-option__pane is-active" style="flex:1"></div>
+            </div>
+            <span>Full</span>
+          </button>
+          <button class="layout-option is-active" title="Graphs + 3D">
+            <div class="layout-option__icon">
+              <div class="layout-option__pane is-active"></div>
+              <div class="layout-option__pane is-active"></div>
+            </div>
+            <span>Split</span>
+          </button>
+          <button class="layout-option" title="3 panels">
+            <div class="layout-option__icon">
+              <div class="layout-option__pane is-active"></div>
+              <div class="layout-option__pane is-active"></div>
+              <div class="layout-option__pane is-active"></div>
+            </div>
+            <span>3-up</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar__popover" data-popover-for="templates">
+        <div class="sidebar__popover-title">Templates</div>
+        <div class="template-list">
+          <button class="template-item"><span>Default analyst layout</span><em>built-in</em></button>
+          <button class="template-item"><span>Approach review</span><em>built-in</em></button>
+          <button class="template-item"><span>Engine investigation</span><em>built-in</em></button>
+          <button class="template-item template-item--add">+ Save current as template…</button>
         </div>
       </div>
 
@@ -1555,36 +2034,21 @@
         <div class="panel-tabs" id="module-tabs">
           <button class="panel-tab is-active" data-mod="graphs">Graphs</button>
           <button class="panel-tab" data-mod="tabular">Tabular</button>
-          <button class="panel-tab" data-mod="approaches">Approaches</button>
-          <button class="panel-tab" data-mod="instruments">Instruments</button>
           <button class="panel-tab" data-mod="status">Status</button>
         </div>
 
-        <!-- Event summary strip (always visible, no filtering needed) -->
-        <div class="event-summary" id="event-summary">
-          <span class="event-summary__label">Events</span>
-          <!-- chips injected by JS -->
-          <button class="event-summary__simulate" id="btn-simulate">
-            <span class="event-summary__simulate-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-              </svg>
-            </span>
-            Simulate
-          </button>
-        </div>
 
         <!-- ── Module: Graphs ────────────────────────────────────── -->
         <div class="panel-content is-active" data-mod="graphs">
           <div class="graphs-scroll" id="graphs-scroll">
             <!-- graph cards rendered by JS -->
           </div>
-          <div class="graph-drop-zone" style="margin: 0 8px 8px">
+          <button class="graph-drop-zone" id="add-empty-graph" style="margin: 0 8px 8px">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M7 2v10M2 7h10"/>
             </svg>
-            Drop parameter here or click to add graph
-          </div>
+            Add a graph
+          </button>
         </div><!-- /panel-content graphs -->
 
         <!-- ── Module: Tabular ────────────────────────────────────── -->
@@ -1594,16 +2058,83 @@
           </div>
         </div>
 
-        <!-- ── Module: Approaches ─────────────────────────────────── -->
-        <div class="panel-content" data-mod="approaches">
-          <div class="approach-list" id="approach-list"></div>
+<!-- ── Module: Status ─────────────────────────────────────── -->
+        <div class="panel-content" data-mod="status">
+          <div class="status-page" id="status-page"></div>
         </div>
 
-        <!-- ── Module: Instruments ────────────────────────────────── -->
-        <div class="panel-content" data-mod="instruments">
-          <div class="instruments-dash">
+        <!-- legacy mock card kept hidden for the styles to be referenced -->
+      </div><!-- /graphs-panel -->
+
+      <!-- RESIZE HANDLE -->
+      <div class="resize-handle"></div>
+
+      <!-- THIRD PANE — only visible in 3-up layout, holds Tabular ────── -->
+      <div class="third-pane" id="third-pane" style="display:none">
+        <div class="panel-tabs"><div class="panel-tab is-active">Tabular</div></div>
+        <div class="third-pane__content" id="third-pane-content"></div>
+      </div>
+      <div class="resize-handle" id="third-resize" style="display:none"></div>
+
+      <!-- RIGHT PANEL: 3D Visualizer + Map ────────────────────────────── -->
+      <div class="right-panel">
+
+        <div class="right-panel__tabs panel-tabs" id="right-tabs">
+          <div style="display:flex">
+            <button class="panel-tab is-active" data-rpane="3d">3D View</button>
+            <button class="panel-tab" data-rpane="map">Map</button>
+          </div>
+        </div>
+
+        <div class="visualizer-area" id="visualizer-area">
+
+          <!-- 3D Visualizer -->
+          <div class="visualizer-pane" data-rpane="3d">
+            <div class="v-readout">
+              <div class="v-readout__row"><span>ALT AAL</span><strong id="v-alt">—</strong></div>
+              <div class="v-readout__row"><span>IAS</span><strong id="v-ias">—</strong></div>
+              <div class="v-readout__row"><span>VSI</span><strong id="v-vsi">—</strong></div>
+              <div class="v-readout__row"><span>HDG</span><strong id="v-hdg">—</strong></div>
+              <div class="v-readout__row"><span>PITCH</span><strong id="v-pitch">—</strong></div>
+              <div class="v-readout__row"><span>ROLL</span><strong id="v-roll">—</strong></div>
+            </div>
+            <div class="visualizer-placeholder">
+              <svg class="visualizer-placeholder__aircraft" viewBox="0 0 64 64" fill="white">
+                <path d="M32 4L20 36H28V60L32 58L36 60V36H44L32 4Z" opacity="0.9"/>
+                <path d="M10 30L28 34V28L10 24V30Z" opacity="0.5"/>
+                <path d="M54 30L36 34V28L54 24V30Z" opacity="0.5"/>
+                <path d="M20 54L28 52V56L20 58V54Z" opacity="0.3"/>
+                <path d="M44 54L36 52V56L44 58V54Z" opacity="0.3"/>
+              </svg>
+              <span class="visualizer-placeholder__label">3D Visualizer · pending WebGL integration</span>
+            </div>
+          </div>
+
+
+          <!-- Map -->
+          <div class="map-pane" data-rpane="map">
+            <svg id="map-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
+              <path id="map-track" class="map-track" d=""/>
+              <path id="map-track-flown" class="map-track-flown" d=""/>
+              <g id="map-events"></g>
+              <circle id="map-current" class="map-current" cx="0" cy="0" r="4"/>
+            </svg>
+          </div>
+
+        </div>
+
+        <!-- Resize handle between visualizer and instruments -->
+        <div class="resize-handle resize-handle--vertical" id="instruments-resize"></div>
+
+        <!-- Instruments dashboard — always visible below 3D / Map -->
+        <div class="instruments-pane" id="instruments-pane">
+          <div class="panel-tabs" id="instruments-tabs">
+            <button class="panel-tab is-active" data-itab="pfd">Primary Flight Display</button>
+            <button class="panel-tab" data-itab="engines">Engines</button>
+          </div>
+          <div class="instruments-content">
             <!-- Primary Flight Display -->
-            <div class="pfd">
+            <div class="pfd is-active" data-itab="pfd">
               <!-- Speed tape (left column) -->
               <div class="tape" id="tape-speed">
                 <div class="tape__label">IAS · kt</div>
@@ -1652,7 +2183,7 @@
                   </g>
                   <line id="vsi-needle" x1="0" y1="100" x2="30" y2="100" stroke="#28C8B9" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <div class="tape__label" style="position:absolute;bottom:4px;top:auto">VSI · k·fpm</div>
+                <div class="tape__label tape__label--bottom">VSI · k·fpm</div>
               </div>
 
               <!-- Heading strip (bottom, full width) -->
@@ -1665,8 +2196,8 @@
               </div>
             </div>
 
-            <!-- Engines column -->
-            <div class="engines">
+            <!-- Engines panel -->
+            <div class="engines" data-itab="engines">
               <div class="engines__col-headers">
                 <div></div><div>Eng 1</div><div>Eng 2</div>
               </div>
@@ -1702,69 +2233,6 @@
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- ── Module: Status ─────────────────────────────────────── -->
-        <div class="panel-content" data-mod="status">
-          <div class="status-grid" id="status-grid"></div>
-        </div>
-
-        <!-- legacy mock card kept hidden for the styles to be referenced -->
-      </div><!-- /graphs-panel -->
-
-      <!-- RESIZE HANDLE -->
-      <div class="resize-handle"></div>
-
-      <!-- RIGHT PANEL: 3D Visualizer + Map ────────────────────────────── -->
-      <div class="right-panel">
-
-        <div class="right-panel__tabs panel-tabs" id="right-tabs">
-          <div style="display:flex">
-            <button class="panel-tab is-active" data-rpane="3d">3D View</button>
-            <button class="panel-tab" data-rpane="map">Map</button>
-          </div>
-          <span style="font-family:var(--font-label);font-size:11px;font-weight:500;color:var(--color-text-muted);letter-spacing:0.06em">
-            Flight #46309524 · <span id="flight-aircraft">—</span>
-          </span>
-        </div>
-
-        <div class="visualizer-area">
-
-          <!-- 3D Visualizer -->
-          <div class="visualizer-pane" data-rpane="3d">
-            <div class="v-readout">
-              <div class="v-readout__row"><span>ALT AAL</span><strong id="v-alt">—</strong></div>
-              <div class="v-readout__row"><span>IAS</span><strong id="v-ias">—</strong></div>
-              <div class="v-readout__row"><span>VSI</span><strong id="v-vsi">—</strong></div>
-              <div class="v-readout__row"><span>HDG</span><strong id="v-hdg">—</strong></div>
-              <div class="v-readout__row"><span>PITCH</span><strong id="v-pitch">—</strong></div>
-              <div class="v-readout__row"><span>ROLL</span><strong id="v-roll">—</strong></div>
-            </div>
-            <div class="visualizer-placeholder">
-              <svg class="visualizer-placeholder__aircraft" viewBox="0 0 64 64" fill="white">
-                <path d="M32 4L20 36H28V60L32 58L36 60V36H44L32 4Z" opacity="0.9"/>
-                <path d="M10 30L28 34V28L10 24V30Z" opacity="0.5"/>
-                <path d="M54 30L36 34V28L54 24V30Z" opacity="0.5"/>
-                <path d="M20 54L28 52V56L20 58V54Z" opacity="0.3"/>
-                <path d="M44 54L36 52V56L44 58V54Z" opacity="0.3"/>
-              </svg>
-              <span class="visualizer-placeholder__label">3D Visualizer · pending WebGL integration</span>
-            </div>
-          </div>
-
-          <!-- Resize handle between 3D and Map -->
-          <div class="resize-handle resize-handle--vertical"></div>
-
-          <!-- Map -->
-          <div class="map-pane" data-rpane="map">
-            <svg id="map-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
-              <path id="map-track" class="map-track" d=""/>
-              <path id="map-track-flown" class="map-track-flown" d=""/>
-              <g id="map-events"></g>
-              <circle id="map-current" class="map-current" cx="0" cy="0" r="4"/>
-            </svg>
-          </div>
-
         </div>
 
       </div><!-- /right-panel -->
@@ -1932,28 +2400,24 @@ function renderTimeline() {
     t.style.left = (i/8 * 100) + "%";
     track.insertBefore(t, head);
   }
-  // event markers
+  // event markers — pin glyphs, anchored above the track with a faint stem
+  // pointing to the exact event time inside the track
   FLIGHT.events.forEach(ev => {
-    const m = el("div", "event-marker level-" + ev.level);
+    const fill = ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D";
+    const m = el("div", "event-marker");
+    m.dataset.level = ev.level;
     m.style.left = (ev.pct*100) + "%";
     m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
+    m.innerHTML = `
+      <svg viewBox="0 0 14 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 23.5 L1.5 11 A5.5 5.5 0 1 1 12.5 11 Z" fill="${fill}" stroke="#021C25" stroke-width="0.8"/>
+        <circle cx="7" cy="8" r="2.2" fill="#021C25"/>
+      </svg>`;
     m.addEventListener("click", e => { e.stopPropagation(); seekTo(ev.pct); });
     track.insertBefore(m, head);
   });
 }
 
-/* — Event chips above graphs — */
-function renderEventChips() {
-  const sum = $("#event-summary");
-  const sim = $("#btn-simulate");
-  FLIGHT.events.forEach(ev => {
-    const c = el("button", "event-chip level-" + ev.level);
-    c.innerHTML = `<div class="event-chip__dot"></div>${ev.code}`;
-    c.title = `${ev.name} · ${ev.value} (threshold ${ev.threshold}) · ${pctToTime(ev.pct)}`;
-    c.addEventListener("click", () => seekTo(ev.pct));
-    sum.insertBefore(c, sim);
-  });
-}
 
 /* — Finder list — */
 function renderFinder() {
@@ -1969,13 +2433,29 @@ function renderFinder() {
       meta:  pctToTime(ev.pct),
       color: ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D",
       onClick: () => seekTo(ev.pct),
-    }))));
+    })), "Event"));
   }
   if (filters.has("Parm")) {
-    const list = Object.values(PARAMETERS).filter(p=>matches(p.name)).map(p => ({
-      label: p.name, meta: p.units, color: p.color,
+    // Map: pid -> [graphIdx, ...]   so we can count usages and highlight on click
+    const onGraph = new Map();
+    GRAPHS.forEach((g, idx) => g.params.forEach(pid => {
+      if (!onGraph.has(pid)) onGraph.set(pid, []);
+      onGraph.get(pid).push(idx);
     }));
-    if (list.length) root.appendChild(group("Parameters", list));
+    const list = Object.entries(PARAMETERS).filter(([id,p])=>matches(p.name)).map(([id,p]) => {
+      const usages = onGraph.get(id) || [];
+      const isOn = usages.length > 0;
+      return {
+        label: p.name,
+        meta: isOn ? `on ${usages.length} graph${usages.length>1?"s":""}` : p.units,
+        // Stable per-parameter color — matches what shows up on the graphs
+        color: colorForParam(id),
+        className: isOn ? "is-on-graph" : "is-addable",
+        title: isOn ? "Click to highlight charts using this parameter" : "Click to add as a new graph",
+        onClick: () => isOn ? highlightGraphsWithParam(id, usages) : addGraphForParam(id),
+      };
+    });
+    if (list.length) root.appendChild(group("Parameters", list, "Parm"));
   }
   if (filters.has("KTI")) {
     const ktis = [
@@ -1985,7 +2465,7 @@ function renderFinder() {
     if (ktis.length) root.appendChild(group("KTIs", ktis.map(k=>({
       label:k.label, meta:pctToTime(k.pct), color:"#7FA8B8",
       onClick: () => seekTo(k.pct),
-    }))));
+    })), "KTI"));
   }
   if (filters.has("KPV")) {
     const kpvs = [
@@ -1996,28 +2476,258 @@ function renderFinder() {
     if (kpvs.length) root.appendChild(group("KPVs", kpvs.map(k=>({
       label:k.label, meta:k.value, color:"#28C8B9",
       onClick: () => seekTo(k.pct),
-    }))));
+    })), "KPV"));
   }
   if (filters.has("Phase")) {
     const phs = FLIGHT.phases.filter(p=>matches(p.name));
     if (phs.length) root.appendChild(group("Phases", phs.map(p=>({
       label:p.name, meta:pctToTime(p.startPct), color:"#3A6478",
       onClick: () => seekTo(p.startPct),
-    }))));
+    })), "Phase"));
   }
 
-  function group(label, items){
+  function group(label, items, filterKey){
     const g = el("div");
+    if (filterKey) g.dataset.finderGroup = filterKey;
     g.appendChild(el("div", "finder-group-label", label));
     items.forEach(it => {
-      const i = el("div", "finder-item");
-      i.innerHTML = `<div class="finder-item__dot" style="background:${it.color}"></div>${it.label}` +
-        (it.meta ? `<span style="margin-left:auto;font-family:var(--font-label);font-size:10px;color:var(--color-text-muted)">${it.meta}</span>` : "");
+      const i = el("div", "finder-item" + (it.className ? " " + it.className : ""));
+      const dot = it.color
+        ? `<div class="finder-item__dot" style="background:${it.color}"></div>`
+        : `<div class="finder-item__dot finder-item__dot--hollow"></div>`;
+      i.innerHTML = dot + `<span class="finder-item__label">${it.label}</span>` +
+        (it.meta ? `<span class="finder-item__meta">${it.meta}</span>` : "");
+      if (it.title) i.title = it.title;
       if (it.onClick) i.addEventListener("click", it.onClick);
       g.appendChild(i);
     });
     return g;
   }
+}
+
+/* — Highlight every graph card that uses a given parameter — */
+/* — Hover-to-isolate: dim every line in the card except `pid` ────────── */
+function focusParamInCard(card, pid) {
+  card.querySelectorAll("svg polyline[data-pid]").forEach(line => {
+    const match = line.dataset.pid === pid;
+    line.style.opacity = match ? "1" : "0.15";
+    line.setAttribute("stroke-width", match ? "2.2" : "1.2");
+  });
+  card.querySelectorAll(".graph-card__legend-item").forEach(item => {
+    item.style.opacity = item.dataset.pid === pid ? "1" : "0.4";
+  });
+}
+function unfocusParamsInCard(card) {
+  card.querySelectorAll("svg polyline[data-pid]").forEach(line => {
+    line.style.opacity = "";
+    line.setAttribute("stroke-width", "1.5");
+  });
+  card.querySelectorAll(".graph-card__legend-item").forEach(item => {
+    item.style.opacity = "";
+  });
+}
+
+function flashGraph(idx) {
+  const card = document.querySelector(`[data-graph-idx="${idx}"]`);
+  if (!card) return;
+  card.classList.remove("is-flash");
+  // force reflow so the animation restarts on subsequent clicks
+  void card.offsetWidth;
+  card.classList.add("is-flash");
+}
+function highlightGraphsWithParam(pid, usages) {
+  // Make sure we're on the Graphs module
+  const tab = document.querySelector('#module-tabs .panel-tab[data-mod="graphs"]');
+  if (tab && !tab.classList.contains("is-active")) tab.click();
+  // Scroll to the first card and flash all
+  if (usages.length) {
+    const first = document.querySelector(`[data-graph-idx="${usages[0]}"]`);
+    if (first) first.scrollIntoView({behavior:"smooth", block:"center"});
+  }
+  usages.forEach(flashGraph);
+}
+
+/* — Chart line palette ────────────────────────────────────────────────────
+   Pulled from the Brazos design system (Figma node 4161:15602).
+   The branding Orange (L3), Yellow (L2) and Green (L1) are excluded so
+   chart lines never get confused with event-severity colors.
+
+   Each parameter has a STABLE color, paired with adjacent hues for related
+   params (Eng 1/2 Torque share a violet family, Gas Temp 1/2 a warm family,
+   the three altitudes a pink/magenta family, etc.).
+   Two extra colors (magenta + cyan) were added to bring the palette to 15. */
+const PARAM_COLORS = {
+  altAal:     "#FF5E96", // pink
+  altAdh:     "#FF8FD6", // pink pastel
+  altRadio:   "#D946FF", // magenta (new — fills altitude trio)
+  airspeed:   "#FF2C30", // red
+  collective: "#FFA600", // amber
+  eng1Torque: "#9B65FF", // violet
+  eng2Torque: "#E6C2FF", // lavender
+  eng1N1:     "#00FF80", // spring green
+  eng2N1:     "#00FFAE", // mint
+  gasTemp1:   "#FF6D56", // coral
+  gasTemp2:   "#FFAD9D", // peach
+  heading:    "#97E0FF", // sky
+  pitch:      "#2B9FFF", // blue
+  roll:       "#66D8CF", // light teal
+  vsi:        "#00D9FF", // cyan (new)
+};
+const colorForParam = (pid) => PARAM_COLORS[pid] || "#FFFFFF";
+
+/* — Add / remove graph cards (driven by Finder clicks) — */
+function addGraphForParam(pid) {
+  const existing = GRAPHS.findIndex(g => g.params.includes(pid));
+  if (existing >= 0) {
+    // Switch to graphs module if needed
+    const tab = document.querySelector('#module-tabs .panel-tab[data-mod="graphs"]');
+    if (tab && !tab.classList.contains("is-active")) tab.click();
+    const card = document.querySelector(`[data-graph-idx="${existing}"]`);
+    if (card) card.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  GRAPHS.push({ title: PARAMETERS[pid].name, yAxis: [], params: [pid], custom: true });
+  const newIdx = GRAPHS.length - 1;
+  renderGraphs();
+  renderFinder();
+  update();
+  const scroll = document.getElementById('graphs-scroll');
+  if (scroll) scroll.scrollTop = scroll.scrollHeight;
+  setTimeout(() => flashGraph(newIdx), 50);
+}
+function removeGraph(idx) {
+  GRAPHS.splice(idx, 1);
+  renderGraphs();
+  renderFinder();
+  update();
+}
+
+function removeParamFromGraph(graphIdx, pid) {
+  const g = GRAPHS[graphIdx];
+  if (!g) return;
+  g.params = g.params.filter(p => p !== pid);
+  if (g.params.length === 0) {
+    GRAPHS.splice(graphIdx, 1);
+  }
+  renderGraphs();
+  renderFinder();
+  update();
+}
+
+function addParamToGraph(graphIdx, pid) {
+  const g = GRAPHS[graphIdx];
+  if (!g || g.params.includes(pid)) return;
+  g.params.push(pid);
+  renderGraphs();
+  renderFinder();
+  update();
+  setTimeout(() => flashGraph(graphIdx), 30);
+}
+
+/* Popup menu under the graph header's "+" button — pick a parameter to add */
+function openAddParamMenu(graphIdx, anchorBtn) {
+  // Close any open menu first
+  document.querySelectorAll(".add-param-menu").forEach(m => m.remove());
+
+  const inGraph = new Set((GRAPHS[graphIdx] || {}).params || []);
+  const menu = document.createElement("div");
+  menu.className = "add-param-menu";
+
+  // Group parameters by their `group` field for legibility
+  const groups = {};
+  Object.entries(PARAMETERS).forEach(([id, p]) => {
+    (groups[p.group] = groups[p.group] || []).push([id, p]);
+  });
+  const groupTitles = { alt:"Altitude / Speed", power:"Power", attitude:"Attitude", engine:"Engines", nav:"Navigation" };
+
+  let html = `<div class="add-param-menu__title">Add parameter</div>`;
+  for (const [gKey, items] of Object.entries(groups)) {
+    html += `<div class="add-param-menu__group">${groupTitles[gKey] || gKey}</div>`;
+    for (const [id, p] of items) {
+      const has = inGraph.has(id);
+      html += `<button class="add-param-item${has?" is-in":""}" data-pid="${id}" ${has?"disabled":""}>
+        <span class="add-param-item__name">${p.name}</span>
+        <span class="add-param-item__units">${p.units}</span>
+        ${has ? `<span class="add-param-item__check">✓</span>` : `<span class="add-param-item__plus">+</span>`}
+      </button>`;
+    }
+  }
+  menu.innerHTML = html;
+
+  menu.addEventListener("click", e => {
+    const btn = e.target.closest(".add-param-item");
+    if (btn && !btn.disabled) {
+      addParamToGraph(graphIdx, btn.dataset.pid);
+      menu.remove();
+    }
+  });
+
+  menu.style.position = "fixed";
+  document.body.appendChild(menu);
+  positionAddParamMenu(menu, anchorBtn);
+
+  // Reposition on resize/scroll while open
+  const reposition = () => positionAddParamMenu(menu, anchorBtn);
+  window.addEventListener("resize", reposition);
+  window.addEventListener("scroll", reposition, true);
+
+  // Dismiss on outside click
+  setTimeout(() => {
+    function close(e) {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        window.removeEventListener("resize", reposition);
+        window.removeEventListener("scroll", reposition, true);
+        document.removeEventListener("click", close);
+      }
+    }
+    document.addEventListener("click", close);
+  }, 0);
+}
+
+function positionAddParamMenu(menu, anchorBtn) {
+  const PAD = 8;
+  // Reset constraints so we can measure natural size first
+  menu.style.maxHeight = "";
+  menu.style.left = "";
+  menu.style.right = "";
+  menu.style.top = "0px";
+
+  const a = anchorBtn.getBoundingClientRect();
+  const m = menu.getBoundingClientRect();
+  const VW = window.innerWidth, VH = window.innerHeight;
+
+  // Vertical: prefer below, flip above if not enough room, clamp + cap if neither fits.
+  const spaceBelow = VH - a.bottom - PAD;
+  const spaceAbove = a.top - PAD;
+  let top;
+  if (m.height <= spaceBelow) {
+    top = a.bottom + 6;
+  } else if (m.height <= spaceAbove) {
+    top = a.top - m.height - 6;
+  } else if (spaceBelow >= spaceAbove) {
+    top = a.bottom + 6;
+    menu.style.maxHeight = (spaceBelow - 6) + "px";
+  } else {
+    top = PAD;
+    menu.style.maxHeight = (spaceAbove - 6) + "px";
+  }
+
+  // Horizontal: try right-aligned to the anchor, then clamp inside the viewport.
+  // Re-measure width after maxHeight may have changed.
+  const m2 = menu.getBoundingClientRect();
+  let left = a.right - m2.width;
+  if (left + m2.width > VW - PAD) left = VW - m2.width - PAD;
+  if (left < PAD) left = PAD;
+
+  menu.style.top  = top + "px";
+  menu.style.left = left + "px";
+}
+
+function autoYLabels(min, max) {
+  const span = max - min || 1;
+  const fmt = n => Math.abs(n) >= 100 ? n.toFixed(0) : Math.abs(n) >= 10 ? n.toFixed(1) : n.toFixed(2);
+  return [fmt(max), fmt(min + span/2), fmt(min)];
 }
 
 /* — Graph cards — */
@@ -2027,26 +2737,73 @@ function renderGraphs() {
   GRAPHS.forEach((g, idx) => {
     const card = el("div", "graph-card");
     card.dataset.graphIdx = idx;
+    card.setAttribute("data-graph-idx", idx);
     // header
     const header = el("div", "graph-card__header");
     const legend = el("div", "graph-card__legend");
-    g.params.forEach(pid => {
-      const p = PARAMETERS[pid];
-      const item = el("div", "graph-card__legend-item");
-      item.innerHTML = `<div class="graph-card__legend-swatch" style="background:${p.color}"></div>${p.name}<span class="graph-card__legend-value" data-legend-for="${pid}">—</span>`;
-      legend.appendChild(item);
-    });
+    if (g.params.length === 0) {
+      // Empty graph card — show a CTA that opens the param picker
+      const cta = el("button", "graph-card__empty-cta");
+      cta.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M7 2v10M2 7h10"/></svg>
+        Add parameters`;
+      cta.addEventListener("click", e => {
+        e.stopPropagation();
+        openAddParamMenu(idx, e.currentTarget);
+      });
+      legend.appendChild(cta);
+    } else {
+      g.params.forEach((pid) => {
+        const p = PARAMETERS[pid];
+        const color = colorForParam(pid);
+        const item = el("div", "graph-card__legend-item");
+        item.dataset.pid = pid;
+        item.innerHTML = `
+          <div class="graph-card__legend-swatch" style="background:${color}"></div>
+          <span class="graph-card__legend-name">${p.name}</span>
+          <span class="graph-card__legend-value" data-legend-for="${pid}">—</span>
+          <button class="legend-remove" title="Remove from graph" data-pid="${pid}">
+            <svg width="8" height="8" viewBox="0 0 8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M1 1l6 6M7 1l-6 6"/></svg>
+          </button>`;
+        item.querySelector('.legend-remove').addEventListener('click', e => {
+          e.stopPropagation();
+          removeParamFromGraph(idx, pid);
+        });
+        // Hover-to-isolate: focus this param, fade the rest
+        item.addEventListener('mouseenter', () => focusParamInCard(card, pid));
+        item.addEventListener('mouseleave', () => unfocusParamsInCard(card));
+        legend.appendChild(item);
+      });
+    }
     header.appendChild(legend);
     const actions = el("div", "graph-card__actions",
-      `<button class="graph-card__action-btn" title="Options"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="2" cy="6" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="10" cy="6" r="1"/></svg></button>`);
+      `<button class="graph-card__action-btn graph-card__add" title="Add parameter to this graph" data-graph-idx="${idx}">
+         <svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+       </button>
+       <button class="graph-card__action-btn graph-card__close" title="Remove graph" data-graph-close="${idx}">
+         <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+       </button>`);
+    actions.querySelector('[data-graph-close]').addEventListener('click', () => removeGraph(idx));
+    actions.querySelector('.graph-card__add').addEventListener('click', e => {
+      e.stopPropagation();
+      openAddParamMenu(idx, e.currentTarget);
+    });
     header.appendChild(actions);
     card.appendChild(header);
 
     // plot
     const plot = el("div", "graph-card__plot");
     const yAxis = el("div", "graph-card__y-axis");
-    g.yAxis.forEach(y => yAxis.appendChild(el("span", "graph-card__y-label", y)));
-    plot.appendChild(yAxis);
+
+    // compute y-range from all params in this graph (also used by lines below)
+    let yMin = 0, yMax = 1;
+    if (g.params.length > 0) {
+      const allVals = g.params.flatMap(pid => PARAMETERS[pid].series);
+      yMin = Math.min(...allVals); yMax = Math.max(...allVals);
+      const labels = (g.yAxis && g.yAxis.length) ? g.yAxis : autoYLabels(yMin, yMax);
+      labels.forEach(y => yAxis.appendChild(el("span", "graph-card__y-label", y)));
+      plot.appendChild(yAxis);
+    }
 
     // event lines
     FLIGHT.events.forEach(ev => {
@@ -2063,25 +2820,25 @@ function renderGraphs() {
     svg.setAttribute("viewBox", "0 0 500 80");
     svg.setAttribute("preserveAspectRatio", "none");
 
-    // compute y-range from all params in this graph
-    const allVals = g.params.flatMap(pid => PARAMETERS[pid].series);
-    const yMin = Math.min(...allVals), yMax = Math.max(...allVals);
+    // y-range already computed above (yMin/yMax)
     const ySpan = (yMax - yMin) || 1;
     const yPad = ySpan * 0.08;
 
-    g.params.forEach(pid => {
+    g.params.forEach((pid) => {
       const p = PARAMETERS[pid];
-      const pts = p.series.map((v, i) => {
-        const x = (i/(N-1)) * 500;
+      const color = colorForParam(pid);
+      const pts = p.series.map((v, k) => {
+        const x = (k/(N-1)) * 500;
         const y = 80 - ((v - yMin + yPad) / (ySpan + yPad*2)) * 80;
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       }).join(" ");
       const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
       line.setAttribute("fill", "none");
-      line.setAttribute("stroke", p.color);
+      line.setAttribute("stroke", color);
       line.setAttribute("stroke-width", "1.5");
-      line.setAttribute("opacity", "0.85");
+      line.setAttribute("opacity", "0.9");
       line.setAttribute("points", pts);
+      line.dataset.pid = pid;
       svg.appendChild(line);
     });
     placeholder.appendChild(svg);
@@ -2119,44 +2876,94 @@ function renderTabular() {
   t.appendChild(body);
 }
 
-/* — Approaches — */
-function renderApproaches() {
-  const root = $("#approach-list");
-  root.innerHTML = "";
-  FLIGHT.approaches.forEach(a => {
-    const item = el("div", "approach-item");
-    item.innerHTML = `
-      <div class="approach-item__id">#${a.id}</div>
-      <div>
-        <div class="approach-item__name">${a.runway}</div>
-        <div class="approach-item__meta">${a.type} · GS ${a.glideslope} · TD ${pctToTime(a.touchdownPct)}</div>
-      </div>
-      <button class="approach-item__action">Jump to TD</button>`;
-    item.querySelector(".approach-item__action").addEventListener("click", () => seekTo(a.touchdownPct));
-    root.appendChild(item);
-  });
-}
-
-/* — Status cards — */
+/* — Status page (hero · facts · events · approaches) — */
 function renderStatus() {
-  const root = $("#status-grid");
-  root.innerHTML = "";
-  const cards = [
-    { label:"Flight",       value:"#"+FLIGHT.id, sub:FLIGHT.aircraft },
-    { label:"Origin",       value:FLIGHT.origin },
-    { label:"Destination",  value:FLIGHT.destination },
-    { label:"Duration",     value:Math.floor(FLIGHT.durationSec/60)+":"+String(FLIGHT.durationSec%60).padStart(2,"0") },
-    { label:"Events L3",    value:FLIGHT.events.filter(e=>e.level===3).length, sub:"Severe" },
-    { label:"Events L2",    value:FLIGHT.events.filter(e=>e.level===2).length, sub:"Moderate" },
-    { label:"Events L1",    value:FLIGHT.events.filter(e=>e.level===1).length, sub:"Low" },
-    { label:"Approaches",   value:FLIGHT.approaches.length },
-  ];
-  cards.forEach(c => {
-    const card = el("div", "status-card");
-    card.innerHTML = `<div class="status-card__label">${c.label}</div>
-      <div class="status-card__value">${c.value}</div>
-      ${c.sub ? `<div class="status-card__sub">${c.sub}</div>` : ""}`;
-    root.appendChild(card);
+  const root = $("#status-page");
+  const counts = { 3:0, 2:0, 1:0 };
+  FLIGHT.events.forEach(e => counts[e.level]++);
+  const top = counts[3] > 0 ? 3 : counts[2] > 0 ? 2 : 1;
+  const verdict = top===3 ? "Severe events present"
+                : top===2 ? "Moderate events present"
+                :           "Routine — low-severity only";
+  const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
+
+  root.innerHTML = `
+    <!-- Hero: severity verdict -->
+    <section class="status-hero status-hero--level-${top}">
+      <div class="status-hero__main">
+        <div class="status-hero__verdict">${verdict}</div>
+        <div class="status-hero__counts">
+          <span class="status-count level-3"><b>${counts[3]}</b> · L3</span>
+          <span class="status-count level-2"><b>${counts[2]}</b> · L2</span>
+          <span class="status-count level-1"><b>${counts[1]}</b> · L1</span>
+        </div>
+      </div>
+      <div class="status-hero__id">
+        <div class="status-hero__id-flight">Flight #${FLIGHT.id}</div>
+        <div class="status-hero__id-aircraft">${FLIGHT.aircraft}</div>
+      </div>
+    </section>
+
+    <!-- Route + duration: secondary facts -->
+    <section class="status-route">
+      <div class="status-route__leg">
+        <span class="status-route__label">From</span>
+        <span class="status-route__place">${FLIGHT.origin}</span>
+      </div>
+      <div class="status-route__arrow">→</div>
+      <div class="status-route__leg">
+        <span class="status-route__label">To</span>
+        <span class="status-route__place">${FLIGHT.destination}</span>
+      </div>
+      <div class="status-route__leg status-route__leg--right">
+        <span class="status-route__label">Duration</span>
+        <span class="status-route__place">${m}:${String(s).padStart(2,"0")}</span>
+      </div>
+    </section>
+
+    <!-- Events table: detail -->
+    <section class="status-section">
+      <h3 class="status-section__title">Events <span class="status-section__count">${FLIGHT.events.length}</span></h3>
+      <table class="status-table">
+        <thead><tr>
+          <th>Time</th><th>Phase</th><th>Event</th>
+          <th class="status-table__sev">L</th>
+          <th class="status-table__num">Value</th>
+          <th class="status-table__num">Threshold</th>
+        </tr></thead>
+        <tbody>
+          ${FLIGHT.events.map(ev => `
+            <tr data-status-event="${ev.id}" data-pct="${ev.pct}">
+              <td><span class="status-table__time">${pctToTime(ev.pct)}</span></td>
+              <td>${ev.phase}</td>
+              <td>${ev.name}</td>
+              <td class="status-table__sev"><span class="sev-pill level-${ev.level}">L${ev.level}</span></td>
+              <td class="status-table__num">${ev.value}</td>
+              <td class="status-table__num">${ev.threshold}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Approaches: tertiary -->
+    ${FLIGHT.approaches.length ? `
+      <section class="status-section">
+        <h3 class="status-section__title">Approaches <span class="status-section__count">${FLIGHT.approaches.length}</span></h3>
+        <div class="status-approach-list">
+          ${FLIGHT.approaches.map(a => `
+            <div class="status-approach" data-status-approach="${a.id}" data-pct="${a.touchdownPct}">
+              <span class="status-approach__id">#${a.id}</span>
+              <span class="status-approach__name">${a.runway}</span>
+              <span class="status-approach__meta">${a.type} · GS ${a.glideslope}</span>
+              <span class="status-approach__td">TD ${pctToTime(a.touchdownPct)}</span>
+            </div>`).join("")}
+        </div>
+      </section>` : ""}
+  `;
+
+  // Click row → seek
+  $$("[data-status-event], [data-status-approach]", root).forEach(r => {
+    r.addEventListener("click", () => seekTo(parseFloat(r.dataset.pct)));
   });
 }
 
@@ -2459,19 +3266,62 @@ function setupModuleTabs() {
 }
 
 function setupRightTabs() {
+  const va = $("#visualizer-area");
   $$("#right-tabs .panel-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       $$("#right-tabs .panel-tab").forEach(t => t.classList.remove("is-active"));
       tab.classList.add("is-active");
       const p = tab.dataset.rpane;
       STATE.rightPane = p;
-      $$('.visualizer-pane, .map-pane').forEach(el => {
+      $$('[data-rpane]', va).forEach(el => {
         el.style.display = (el.dataset.rpane === p) ? "" : "none";
       });
     });
   });
   // initial — show only 3D
-  $$('.map-pane').forEach(el => el.style.display = "none");
+  $$('[data-rpane="map"]', va).forEach(el => el.style.display = "none");
+}
+
+function setupInstrumentsTabs() {
+  const tabs = $$("#instruments-tabs .panel-tab");
+  const panes = $$(".instruments-content > [data-itab]");
+  tabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      tabs.forEach(t => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      const target = tab.dataset.itab;
+      panes.forEach(p => p.classList.toggle("is-active", p.dataset.itab === target));
+    });
+  });
+}
+
+function setupInstrumentsResize() {
+  const handle = $("#instruments-resize");
+  const va = $("#visualizer-area");
+  const ip = $("#instruments-pane");
+  if (!handle || !va || !ip) return;
+  let dragging = false;
+  handle.addEventListener("mousedown", () => {
+    dragging = true;
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+  });
+  document.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const right = document.querySelector(".right-panel");
+    const rect = right.getBoundingClientRect();
+    // Subtract space for tabs + handle (~44 + 4 = 48)
+    const usable = rect.height - 48;
+    const yLocal = e.clientY - rect.top - 44;
+    const topPct = Math.max(20, Math.min(80, (yLocal / usable) * 100));
+    va.style.flex = `1 1 ${topPct}%`;
+    ip.style.flex = `1 1 ${100 - topPct}%`;
+  });
+  document.addEventListener("mouseup", () => {
+    dragging = false;
+    document.body.style.cursor = "";
+    document.body.style.userSelect = "";
+  });
 }
 
 function setupFinder() {
@@ -2479,30 +3329,132 @@ function setupFinder() {
   const input = document.querySelector(".sidebar__search-input");
   if (input) { input.id = "finder-search"; input.addEventListener("input", renderFinder); }
   $$("#finder-filters .filter-toggle").forEach(b => {
-    b.addEventListener("click", () => { b.classList.toggle("is-active"); renderFinder(); });
+    b.addEventListener("click", () => {
+      b.classList.toggle("is-active");
+      renderFinder();
+      // After re-render, if the toggle is now active, scroll the Finder results
+      // to its section so the user sees what they just toggled in.
+      if (b.classList.contains("is-active")) {
+        const filter = b.dataset.filter;
+        const grp = document.querySelector(`#finder-results [data-finder-group="${filter}"]`);
+        if (grp) grp.scrollIntoView({behavior:"smooth", block:"start"});
+      }
+    });
   });
+}
+
+function setupAddEmptyGraph() {
+  const btn = $("#add-empty-graph");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    GRAPHS.push({ title: "New graph", yAxis: [], params: [], custom: true });
+    const newIdx = GRAPHS.length - 1;
+    renderGraphs();
+    renderFinder();
+    update();
+    const scroll = document.getElementById("graphs-scroll");
+    if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    setTimeout(() => flashGraph(newIdx), 50);
+  });
+}
+
+function setupSidebarPopovers() {
+  const footer = $("#sidebar-footer");
+  const btns = $$(".sidebar__footer-btn", footer);
+  const popovers = $$(".sidebar__popover");
+  function close() {
+    btns.forEach(b => b.classList.remove("is-active"));
+    popovers.forEach(p => p.classList.remove("is-open"));
+  }
+  btns.forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const target = btn.dataset.popover;
+      const pop = popovers.find(p => p.dataset.popoverFor === target);
+      const wasOpen = btn.classList.contains("is-active");
+      close();
+      if (!wasOpen) { btn.classList.add("is-active"); pop.classList.add("is-open"); }
+    });
+  });
+  popovers.forEach(p => p.addEventListener("click", e => e.stopPropagation()));
+  document.addEventListener("click", close);
 }
 
 function setupLayoutOptions() {
   $$(".layout-option").forEach(opt => {
     opt.addEventListener("click", () => {
-      $$(".layout-option").forEach(o => o.classList.remove("is-active"));
+      const opts = $$(".layout-option");
+      opts.forEach(o => o.classList.remove("is-active"));
       opt.classList.add("is-active");
-      const idx = $$(".layout-option").indexOf(opt);
-      const panels = document.querySelector(".panels");
-      const right = document.querySelector(".right-panel");
-      const handle = document.querySelector(".panels > .resize-handle");
-      if (idx === 0) {
-        right.style.display = "none";
-        handle.style.display = "none";
-        document.querySelector(".graphs-panel").style.flex = "1";
-      } else {
-        right.style.display = "";
-        handle.style.display = "";
-        document.querySelector(".graphs-panel").style.flex = idx===2 ? "0 0 40%" : "0 0 58%";
-      }
+      const idx = opts.indexOf(opt);
+      applyLayout(idx);
     });
   });
+}
+
+function applyLayout(idx) {
+  // 0 = Full (graphs only), 1 = Split (graphs + right), 2 = 3-up (graphs + tabular + right)
+  const panels       = document.querySelector(".panels");
+  const right        = document.querySelector(".right-panel");
+  const mainHandle   = document.querySelector(".panels > .resize-handle");
+  const thirdPane    = $("#third-pane");
+  const thirdResize  = $("#third-resize");
+  const tabularPC    = document.querySelector('.panel-content[data-mod="tabular"]');
+  const tabularTab   = document.querySelector('#module-tabs .panel-tab[data-mod="tabular"]');
+  const graphsPanel  = document.querySelector(".graphs-panel");
+  const graphsHome   = graphsPanel; // tabular originally lives inside .graphs-panel
+
+  panels.classList.toggle("is-3up", idx === 2);
+
+  // Helper: pull tabular back to its home in graphs-panel and clear any
+  // sticky `is-active` flag so it doesn't double up with the active module.
+  function returnTabularHome() {
+    if (tabularPC.parentElement.id === "third-pane-content") {
+      graphsHome.appendChild(tabularPC);
+    }
+    const activeMod = document.querySelector('#module-tabs .panel-tab.is-active')?.dataset.mod;
+    tabularPC.classList.toggle("is-active", activeMod === "tabular");
+  }
+
+  if (idx === 0) {
+    // Full — only graphs panel
+    right.style.display = "none";
+    mainHandle.style.display = "none";
+    thirdPane.style.display = "none";
+    thirdResize.style.display = "none";
+    graphsPanel.style.flex = "1";
+    tabularTab.style.display = "";
+    returnTabularHome();
+  } else if (idx === 1) {
+    // Split — graphs + right
+    right.style.display = "";
+    mainHandle.style.display = "";
+    thirdPane.style.display = "none";
+    thirdResize.style.display = "none";
+    graphsPanel.style.flex = "0 0 58%";
+    right.style.flex = "";
+    tabularTab.style.display = "";
+    returnTabularHome();
+  } else {
+    // 3-up — graphs + tabular column + right
+    right.style.display = "";
+    mainHandle.style.display = "";
+    thirdPane.style.display = "";
+    thirdResize.style.display = "";
+    graphsPanel.style.flex = "0 0 36%";
+    right.style.flex = "0 0 32%";
+    // Move tabular into the third pane (CSS makes it visible there
+    // regardless of `.is-active`, so we don't toggle the flag).
+    $("#third-pane-content").appendChild(tabularPC);
+    // Hide tabular tab in module-tabs (it's permanent in column 2 now)
+    tabularTab.style.display = "none";
+    // If user was on tabular module, switch them to graphs
+    const activeTab = document.querySelector('#module-tabs .panel-tab.is-active');
+    if (activeTab && activeTab.dataset.mod === "tabular") {
+      const graphsTabBtn = document.querySelector('#module-tabs .panel-tab[data-mod="graphs"]');
+      if (graphsTabBtn) graphsTabBtn.click();
+    }
+  }
 }
 
 function setupPanelResize() {
@@ -2526,11 +3478,9 @@ function toggleSidebar() { $("#sidebar").classList.toggle("is-collapsed"); }
    BOOT
    ────────────────────────────────────────────────────────────────────────── */
 renderTimeline();
-renderEventChips();
 renderFinder();
 renderGraphs();
 renderTabular();
-renderApproaches();
 renderInstruments();
 renderStatus();
 renderMap();
@@ -2541,7 +3491,11 @@ setupModuleTabs();
 setupRightTabs();
 setupFinder();
 setupLayoutOptions();
+setupSidebarPopovers();
 setupPanelResize();
+setupInstrumentsTabs();
+setupInstrumentsResize();
+setupAddEmptyGraph();
 
 update();
 </script>
