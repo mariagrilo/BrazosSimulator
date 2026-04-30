@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brazos Simulator — Skeleton</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────────────────── */
+    :root {
+      /* Colours */
+      --color-bg:          #021C25;   /* Dark Blue 100 — page background */
+      --color-surface:     #031F2C;   /* slightly lighter — panel background */
+      --color-surface-hi:  #052535;   /* raised surface — cards, headers */
+      --color-border:      #074058;   /* Blue 100 — all borders/dividers */
+      --color-accent:      #28C8B9;   /* Light Blue 100 — primary accent */
+      --color-accent-dim:  #1a8a80;   /* dimmed accent for hover/pressed */
+
+      /* Severity */
+      --color-level-3:     #FF6019;   /* Signal Orange — most severe */
+      --color-level-2:     #F9F46E;   /* Signal Yellow */
+      --color-level-1:     #6DEB5D;   /* Signal Green — least severe */
+
+      /* Text */
+      --color-text:        #FFFFFF;
+      --color-text-dim:    #7FA8B8;   /* secondary labels */
+      --color-text-muted:  #3A6478;   /* placeholder, inactive */
+
+      /* Layout */
+      --topbar-height:     56px;
+      --timeline-height:   72px;
+      --sidebar-width:     260px;
+      --sidebar-collapsed: 52px;
+      --panel-gap:         1px;       /* gap doubles as a divider line */
+      --resize-handle:     4px;
+
+      /* Typography — replace Inter with FFF Acid Grotesk when licensed */
+      --font-body:         'Inter', sans-serif;
+      --font-label:        'Space Grotesk', sans-serif;
+    }
+
+    /* ─── Reset ─────────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 14px; font-weight: 300; line-height: 1.4; }
+    button { background: none; border: none; cursor: pointer; color: inherit; font: inherit; }
+    ul { list-style: none; }
+
+    /* ─── App Shell ─────────────────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-rows: var(--topbar-height) var(--timeline-height) 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ─── Top Bar ───────────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--color-bg);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 24px 0 16px;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .topbar__logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 32px;
+      text-decoration: none;
+      color: var(--color-text);
+    }
+    .topbar__logo-mark {
+      width: 32px;
+      height: 32px;
+      border: 1.5px solid var(--color-accent);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-label);
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--color-accent);
+      letter-spacing: -0.5px;
+    }
+
+    .topbar__nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    .topbar__nav-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      height: var(--topbar-height);
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--color-text-dim);
+      text-decoration: none;
+      transition: color 0.15s;
+      white-space: nowrap;
+    }
+    .topbar__nav-item:hover { color: var(--color-text); }
+    .topbar__nav-item.is-active {
+      color: var(--color-accent);
+      font-weight: 500;
+      position: relative;
+    }
+    .topbar__nav-item.is-active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 16px;
+      right: 16px;
+      height: 2px;
+      background: var(--color-accent);
+      border-radius: 2px 2px 0 0;
+    }
+    .topbar__nav-caret {
+      width: 6px;
+      height: 6px;
+      border-right: 1.5px solid currentColor;
+      border-bottom: 1.5px solid currentColor;
+      transform: rotate(-45deg) translateY(1px);
+      opacity: 0.7;
+    }
+
+    .topbar__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--color-border);
+      margin: 0 16px;
+    }
+
+    .topbar__user {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+    }
+    .topbar__user-info { color: var(--color-text-dim); }
+    .topbar__user-info strong { color: var(--color-text); font-weight: 400; }
+    .topbar__operator { font-size: 11px; font-family: var(--font-label); text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-muted); }
+    .topbar__logout {
+      padding: 6px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      transition: all 0.15s;
+    }
+    .topbar__logout:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* ─── Timeline Bar ──────────────────────────────────────────────────── */
+    .timeline-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 0 20px 0 16px;
+      flex-shrink: 0;
+      z-index: 90;
+    }
+
+    /* Playback controls */
+    .timeline-bar__controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      margin-right: 16px;
+    }
+    .playback-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--color-text-dim);
+      transition: all 0.15s;
+    }
+    .playback-btn:hover { background: var(--color-surface-hi); color: var(--color-text); }
+    .playback-btn.is-primary {
+      width: 36px;
+      height: 36px;
+      background: var(--color-accent);
+      color: var(--color-bg);
+    }
+    .playback-btn.is-primary:hover { background: var(--color-accent-dim); }
+    .playback-btn svg { display: block; }
+
+    .playback-speed {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-dim);
+      padding: 4px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .timeline-bar__time-start,
+    .timeline-bar__time-end {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-dim);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    /* The scrubber track */
+    .timeline-bar__track-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 0 12px;
+      position: relative;
+    }
+
+    .timeline-bar__track {
+      position: relative;
+      height: 32px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      cursor: pointer;
+      overflow: visible;
+    }
+
+    /* Played portion */
+    .timeline-bar__progress {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 28%;
+      background: rgba(40, 200, 185, 0.12);
+      border-radius: 3px 0 0 3px;
+    }
+
+    /* Playhead */
+    .timeline-bar__head {
+      position: absolute;
+      left: 28%;
+      top: -4px;
+      bottom: -4px;
+      width: 2px;
+      background: var(--color-accent);
+      border-radius: 2px;
+      transform: translateX(-50%);
+    }
+    .timeline-bar__head::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      background: var(--color-accent);
+      border-radius: 50%;
+    }
+
+    /* Current time readout */
+    .timeline-bar__current {
+      position: absolute;
+      left: 28%;
+      top: -22px;
+      transform: translateX(-50%);
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--color-accent);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Event markers on the track */
+    .event-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 2px;
+      transform: translateX(-50%);
+      cursor: pointer;
+      transition: width 0.1s, opacity 0.1s;
+    }
+    .event-marker:hover { width: 5px; }
+    .event-marker::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 3px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.1s;
+    }
+    .event-marker:hover::after { opacity: 1; }
+
+    .event-marker.level-3 { background: var(--color-level-3); }
+    .event-marker.level-2 { background: var(--color-level-2); }
+    .event-marker.level-1 { background: var(--color-level-1); }
+
+    /* Tick marks */
+    .timeline-bar__ticks {
+      position: relative;
+      height: 8px;
+    }
+    .timeline-bar__tick {
+      position: absolute;
+      bottom: 0;
+      width: 1px;
+      background: var(--color-border);
+      transform: translateX(-50%);
+    }
+    .timeline-bar__tick.major {
+      height: 8px;
+    }
+    .timeline-bar__tick.minor {
+      height: 4px;
+      opacity: 0.5;
+    }
+
+    /* Total duration */
+    .timeline-bar__duration {
+      font-family: var(--font-label);
+      font-size: 11px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+      margin-left: 12px;
+      white-space: nowrap;
+    }
+
+    /* ─── Workspace ─────────────────────────────────────────────────────── */
+    .workspace {
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ─── Sidebar ───────────────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      background: var(--color-surface);
+      border-right: 1px solid var(--color-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width 0.2s ease;
+    }
+    .sidebar.is-collapsed { width: var(--sidebar-collapsed); }
+
+    .sidebar__toggle {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .sidebar.is-collapsed .sidebar__toggle { justify-content: center; }
+
+    .sidebar__toggle-btn {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      color: var(--color-text-dim);
+    }
+    .sidebar__toggle-btn:hover { background: var(--color-surface-hi); color: var(--color-text); }
+
+    .sidebar__section {
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+
+    .sidebar__section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      cursor: pointer;
+    }
+    .sidebar.is-collapsed .sidebar__section-header { justify-content: center; padding: 12px; }
+    .sidebar.is-collapsed .sidebar__section-label,
+    .sidebar.is-collapsed .sidebar__section-body { display: none; }
+
+    .sidebar__section-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-dim);
+    }
+    .sidebar.is-collapsed .sidebar__section-icon { color: var(--color-accent); }
+
+    .sidebar__section-body {
+      padding: 8px 14px 12px;
+    }
+
+    /* Search */
+    .sidebar__search {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .sidebar__search-input {
+      width: 100%;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 7px 10px 7px 30px;
+      color: var(--color-text);
+      font: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    .sidebar__search-input:focus { border-color: var(--color-accent); }
+    .sidebar__search-input::placeholder { color: var(--color-text-muted); }
+    .sidebar__search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+    }
+
+    /* Filter toggles */
+    .sidebar__filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .filter-toggle {
+      padding: 3px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-toggle.is-active { border-color: var(--color-accent); color: var(--color-accent); background: rgba(40,200,185,0.08); }
+
+    /* Finder results */
+    .finder-group-label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      padding: 8px 0 4px;
+    }
+    .finder-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--color-text-dim);
+    }
+    .finder-item:hover { background: var(--color-surface-hi); color: var(--color-text); }
+    .finder-item__dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Layout selector */
+    .layout-options {
+      display: flex;
+      gap: 6px;
+    }
+    .layout-option {
+      flex: 1;
+      aspect-ratio: 16/9;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: var(--font-label);
+      font-size: 10px;
+      color: var(--color-text-muted);
+      flex-direction: column;
+      gap: 3px;
+    }
+    .layout-option:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .layout-option.is-active { border-color: var(--color-accent); background: rgba(40,200,185,0.08); color: var(--color-accent); }
+    .layout-option__icon {
+      width: 28px;
+      height: 16px;
+      display: flex;
+      gap: 2px;
+    }
+    .layout-option__pane {
+      flex: 1;
+      border: 1.5px solid currentColor;
+      border-radius: 2px;
+      opacity: 0.6;
+    }
+    .layout-option__pane.is-active { opacity: 1; }
+
+    /* Sidebar bottom — template manager link */
+    .sidebar__footer {
+      margin-top: auto;
+      padding: 12px 14px;
+      border-top: 1px solid var(--color-border);
+    }
+    .sidebar.is-collapsed .sidebar__footer { display: none; }
+    .sidebar__footer-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+    }
+    .sidebar__footer-link:hover { background: var(--color-surface-hi); color: var(--color-text); }
+
+    /* ─── Main Panels ───────────────────────────────────────────────────── */
+    .panels {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      gap: var(--panel-gap);
+      background: var(--color-border); /* gap colour becomes divider */
+    }
+
+    /* ─── Graphs Panel ──────────────────────────────────────────────────── */
+    .graphs-panel {
+      flex: 0 0 58%;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-bg);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .panel-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+      background: var(--color-surface);
+      padding: 0 8px;
+    }
+    .panel-tab {
+      padding: 8px 14px;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .panel-tab:hover { color: var(--color-text-dim); }
+    .panel-tab.is-active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+
+    .graphs-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .graphs-scroll::-webkit-scrollbar { width: 4px; }
+    .graphs-scroll::-webkit-scrollbar-track { background: transparent; }
+    .graphs-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+    /* Individual graph */
+    .graph-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .graph-card__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .graph-card__legend {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .graph-card__legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--color-text-dim);
+    }
+    .graph-card__legend-swatch {
+      width: 20px;
+      height: 2px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+    .graph-card__legend-value {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-left: 2px;
+    }
+
+    .graph-card__actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .graph-card__action-btn {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-muted);
+    }
+    .graph-card__action-btn:hover { background: var(--color-surface-hi); color: var(--color-text-dim); }
+
+    .graph-card__plot {
+      height: 120px;
+      position: relative;
+      background: var(--color-bg);
+    }
+
+    /* Placeholder graph lines */
+    .graph-placeholder {
+      position: absolute;
+      inset: 0;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+    }
+    .graph-placeholder svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Event markers on each graph (vertical lines at event timestamps) */
+    .graph-event-line {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .graph-event-line.level-3 { background: var(--color-level-3); }
+    .graph-event-line.level-2 { background: var(--color-level-2); }
+    .graph-event-line.level-1 { background: var(--color-level-1); }
+
+    /* y-axis labels */
+    .graph-card__y-axis {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 4px 6px;
+      pointer-events: none;
+    }
+    .graph-card__y-label {
+      font-family: var(--font-label);
+      font-size: 9px;
+      color: var(--color-text-muted);
+      text-align: right;
+      line-height: 1;
+    }
+
+    /* Drop zone */
+    .graph-drop-zone {
+      border: 1px dashed var(--color-border);
+      border-radius: 6px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--color-text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .graph-drop-zone:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(40,200,185,0.04); }
+
+    /* ─── Right Panel (Visualizer + Map) ─────────────────────────────────── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--color-bg);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .right-panel__tabs {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+      background: var(--color-surface);
+      padding: 0 12px 0 8px;
+    }
+
+    .visualizer-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .visualizer-pane {
+      flex: 1;
+      background: #000;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 3D placeholder */
+    .visualizer-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--color-text-muted);
+    }
+    .visualizer-placeholder__aircraft {
+      width: 64px;
+      height: 64px;
+      opacity: 0.25;
+    }
+    .visualizer-placeholder__label {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Map pane */
+    .map-pane {
+      height: 200px;
+      flex-shrink: 0;
+      background: #0c1f18;
+      border-top: 1px solid var(--color-border);
+      position: relative;
+      overflow: hidden;
+    }
+    .map-pane::after {
+      content: 'MAP';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.12);
+    }
+
+    /* Resize handle between panels */
+    .resize-handle {
+      flex: 0 0 var(--resize-handle);
+      background: var(--color-border);
+      cursor: col-resize;
+      transition: background 0.15s;
+    }
+    .resize-handle:hover { background: var(--color-accent); }
+    .resize-handle--vertical {
+      height: var(--resize-handle);
+      cursor: row-resize;
+      width: 100%;
+    }
+
+    /* ─── Event Summary Bar (inside graphs panel, above graphs) ──────────── */
+    .event-summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-surface);
+      flex-shrink: 0;
+    }
+    .event-summary__label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-right: 4px;
+    }
+    .event-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px 3px 6px;
+      border-radius: 3px;
+      border: 1px solid;
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .event-chip:hover { opacity: 0.8; }
+    .event-chip.level-3 { border-color: var(--color-level-3); color: var(--color-level-3); }
+    .event-chip.level-2 { border-color: var(--color-level-2); color: var(--color-level-2); }
+    .event-chip.level-1 { border-color: var(--color-level-1); color: var(--color-level-1); }
+    .event-chip__dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .event-chip.level-3 .event-chip__dot { background: var(--color-level-3); }
+    .event-chip.level-2 .event-chip__dot { background: var(--color-level-2); }
+    .event-chip.level-1 .event-chip__dot { background: var(--color-level-1); }
+
+    .event-summary__simulate {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 16px 5px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      transition: all 0.15s;
+    }
+    .event-summary__simulate:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .event-summary__simulate-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-bg);
+    }
+
+    /* ─── Scrollbar ─────────────────────────────────────────────────────── */
+    * { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+
+    /* ─── Per-graph playhead (synced with timeline) ─────────────────────── */
+    .graph-playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--color-accent);
+      pointer-events: none;
+      opacity: 0.85;
+      transform: translateX(-50%);
+    }
+    .graph-event-line {
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .graph-event-line:hover { width: 2px; opacity: 0.9; }
+
+    /* x-axis time labels */
+    .graph-card__x-axis {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 4px;
+      pointer-events: none;
+    }
+    .graph-card__x-label {
+      font-family: var(--font-label);
+      font-size: 9px;
+      color: var(--color-text-muted);
+    }
+
+    /* Panel content swapping (only one is shown at a time) */
+    .panel-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .panel-content.is-active { display: flex; }
+
+    /* Tabular view */
+    .tabular-table {
+      width: 100%;
+      font-size: 12px;
+      border-collapse: collapse;
+    }
+    .tabular-table th, .tabular-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--color-border);
+      text-align: right;
+      font-family: var(--font-label);
+      font-weight: 400;
+      color: var(--color-text-dim);
+    }
+    .tabular-table th {
+      position: sticky;
+      top: 0;
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      z-index: 1;
+    }
+    .tabular-table td:first-child, .tabular-table th:first-child { text-align: left; }
+    .tabular-table tr.is-current td { background: rgba(40,200,185,0.08); color: var(--color-text); }
+    .tabular-scroll { flex: 1; overflow: auto; padding: 0 8px; }
+
+    /* Status panel cards */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      overflow: auto;
+    }
+    .status-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 12px 14px;
+    }
+    .status-card__label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 6px;
+    }
+    .status-card__value {
+      font-family: var(--font-label);
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .status-card__sub { font-size: 11px; color: var(--color-text-dim); margin-top: 4px; }
+
+    /* Approaches list */
+    .approach-list { padding: 16px; overflow: auto; flex: 1; }
+    .approach-item {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .approach-item__id {
+      font-family: var(--font-label);
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+    .approach-item__name { font-weight: 500; color: var(--color-text); }
+    .approach-item__meta { font-size: 12px; color: var(--color-text-dim); margin-top: 2px; }
+    .approach-item__action {
+      font-family: var(--font-label);
+      font-size: 11px;
+      padding: 5px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 100px;
+      color: var(--color-text-dim);
+    }
+    .approach-item__action:hover { border-color: var(--color-accent); color: var(--color-accent); }
+
+    /* Instrument cluster */
+    /* ─── Instruments dashboard (PFD + Engines) ─────────────────────────── */
+    .instruments-dash {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 12px;
+      padding: 12px;
+      overflow: hidden;
+      min-height: 0;
+    }
+    @media (max-width: 1100px) {
+      .instruments-dash { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    }
+
+    /* PFD ─────────────────────────────────────────────────────── */
+    .pfd {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 70px 1fr 70px 50px;
+      grid-template-rows: 1fr 44px;
+      gap: 8px;
+      padding: 28px 14px 14px;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .pfd::before {
+      content: 'Primary Flight Display';
+      position: absolute; top: 8px; left: 14px;
+      font-family: var(--font-label); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+
+    /* Tape (speed/altitude) */
+    .tape {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .tape svg { width: 100%; height: 100%; display: block; }
+    .tape__readout {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: var(--color-accent);
+      color: var(--color-bg);
+      font-family: var(--font-label); font-weight: 500;
+      font-size: 14px; padding: 3px 6px;
+      border-radius: 2px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 2;
+      min-width: 36px;
+      text-align: center;
+    }
+    .tape__readout--left  { left: 0;  border-radius: 0 2px 2px 0; }
+    .tape__readout--right { right: 0; border-radius: 2px 0 0 2px; }
+    .tape__label {
+      position: absolute; top: 4px; left: 0; right: 0;
+      text-align: center;
+      font-family: var(--font-label); font-size: 9px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-muted);
+      pointer-events: none;
+    }
+
+    /* Attitude indicator */
+    .attitude {
+      background: #021018;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .attitude__sky {
+      position: absolute; left: -50%; top: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(to bottom,
+        #1a4f6e 0%, #2a7a9a 49.5%,
+        #6b4a2a 50.5%, #4a3520 100%);
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+    .attitude__pitch-marks {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      will-change: transform;
+    }
+    .attitude__crosshair {
+      position: absolute; top: 50%; left: 50%;
+      width: 50%; height: 2px;
+      background: var(--color-accent);
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      box-shadow: 0 0 4px rgba(40,200,185,0.4);
+    }
+    .attitude__crosshair::before {
+      content: ''; position: absolute;
+      left: 50%; top: -10px;
+      width: 2px; height: 22px;
+      background: var(--color-accent);
+      transform: translateX(-50%);
+    }
+    .attitude__roll-pointer {
+      position: absolute; top: 6px; left: 50%;
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 8px solid var(--color-accent);
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+    .attitude__roll-arc {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* VSI gauge */
+    .vsi-gauge {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .vsi-gauge svg { width: 100%; height: 100%; display: block; }
+
+    /* Heading strip */
+    .heading-strip {
+      grid-column: 1 / -1;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    .heading-strip svg { width: 100%; height: 100%; display: block; }
+    .heading-strip__readout {
+      position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-label); font-weight: 500; font-size: 12px;
+      color: var(--color-bg);
+      background: var(--color-accent);
+      padding: 2px 8px; border-radius: 2px;
+      z-index: 2;
+      min-width: 36px; text-align: center;
+    }
+    .heading-strip__caret {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--color-accent);
+      z-index: 3;
+    }
+
+    /* Engines panel */
+    .engines {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 28px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow: auto;
+      position: relative;
+    }
+    .engines::before {
+      content: 'Engines';
+      position: absolute; top: 8px; left: 14px;
+      font-family: var(--font-label); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .engines__col-headers {
+      display: grid;
+      grid-template-columns: 38px 1fr 1fr;
+      gap: 10px;
+      font-family: var(--font-label); font-size: 9px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-muted);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .engines__col-headers div:nth-child(2),
+    .engines__col-headers div:nth-child(3) { text-align: center; }
+    .engine-row {
+      display: grid;
+      grid-template-columns: 38px 1fr 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+    .engine-row__label {
+      font-family: var(--font-label); font-size: 11px;
+      color: var(--color-text-dim);
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .engine-bar {
+      position: relative;
+      height: 22px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .engine-bar__fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: var(--color-accent);
+      width: 0%;
+      transition: width 0.1s linear, background 0.15s;
+    }
+    .engine-bar__fill.warning { background: var(--color-level-2); }
+    .engine-bar__fill.danger  { background: var(--color-level-3); }
+    .engine-bar__value {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-label); font-size: 11px; font-weight: 500;
+      color: var(--color-text);
+      z-index: 1;
+      text-shadow: 0 0 4px var(--color-bg), 0 0 4px var(--color-bg);
+    }
+    .engine-row--single .engine-bar { grid-column: 2 / -1; }
+
+    .engine-digital {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--color-border);
+    }
+    .engine-digital__cell {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 6px 10px;
+    }
+    .engine-digital__label {
+      font-family: var(--font-label); font-size: 9px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .engine-digital__value {
+      font-family: var(--font-label); font-size: 14px; font-weight: 500;
+      color: var(--color-accent);
+    }
+
+    /* Map polyline + colored event dots */
+    .map-pane svg { width: 100%; height: 100%; display: block; }
+    .map-pane::after { display: none; }
+    .map-track { fill: none; stroke: var(--color-accent); stroke-width: 1.5; opacity: 0.8; }
+    .map-track-flown { stroke: var(--color-accent); stroke-width: 2; opacity: 1; }
+    .map-current { fill: var(--color-accent); }
+
+    /* 3D placeholder, animated */
+    .visualizer-pane {
+      background: radial-gradient(ellipse at center, #04313f 0%, #021018 100%);
+    }
+    .v-readout {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      font-family: var(--font-label);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--color-text-dim);
+      line-height: 1.6;
+    }
+    .v-readout__row { display: flex; gap: 12px; }
+    .v-readout__row span:first-child { color: var(--color-text-muted); min-width: 60px; }
+    .v-readout__row strong { color: var(--color-accent); font-weight: 500; }
+
+    .horizon {
+      width: 70%;
+      max-width: 280px;
+      aspect-ratio: 1/1;
+      position: relative;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid var(--color-border);
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+    }
+    .horizon__sky { position: absolute; inset: 0; background: linear-gradient(to bottom, #1a4f6e 0%, #2a7a9a 50%, #2a7a9a 50%, #6b4a2a 50%, #4a3520 100%); }
+    .horizon__crosshair {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 60%; height: 2px;
+      background: var(--color-accent);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .horizon__crosshair::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: -6px;
+      width: 2px;
+      height: 14px;
+      background: var(--color-accent);
+      transform: translateX(-50%);
+    }
+    .horizon__readout-overlay {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-family: var(--font-label);
+      font-size: 10px;
+      color: rgba(255,255,255,0.6);
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ① TOP BAR ──────────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <a class="topbar__logo" href="#">
+      <div class="topbar__logo-mark">B:</div>
+    </a>
+    <nav class="topbar__nav">
+      <a class="topbar__nav-item" href="#">Home</a>
+      <a class="topbar__nav-item is-active" href="#">
+        <span class="topbar__nav-caret"></span>
+        Flights
+      </a>
+      <a class="topbar__nav-item" href="#">Events</a>
+      <a class="topbar__nav-item" href="#">Reports</a>
+      <a class="topbar__nav-item" href="#">Specifications</a>
+    </nav>
+    <div class="topbar__divider"></div>
+    <div class="topbar__user">
+      <div>
+        <div class="topbar__operator">Operator Name</div>
+        <div class="topbar__user-info">Welcome, <strong>Username</strong></div>
+      </div>
+      <button class="topbar__logout">Log Out</button>
+    </div>
+  </header>
+
+  <!-- ② TIMELINE BAR ─────────────────────────────────────────────────────── -->
+  <div class="timeline-bar">
+
+    <!-- Playback -->
+    <div class="timeline-bar__controls">
+      <button class="playback-btn" id="btn-prev" title="Previous event">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <path d="M2 2h1.5v10H2V2zm9.5 0L5 7l6.5 5V2z"/>
+        </svg>
+      </button>
+      <button class="playback-btn is-primary" id="btn-play" title="Play">
+        <svg id="btn-play-icon" width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+          <path d="M1.5 1.5l9 5.5-9 5.5V1.5z"/>
+        </svg>
+      </button>
+      <button class="playback-btn" id="btn-next" title="Next event">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <path d="M10.5 2H12v10h-1.5V2zm-8 0L9 7l-6.5 5V2z"/>
+        </svg>
+      </button>
+      <select class="playback-speed" id="playback-speed">
+        <option value="0.25">0.25×</option>
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+        <option value="8">8×</option>
+      </select>
+    </div>
+
+    <!-- Start time -->
+    <span class="timeline-bar__time-start" id="t-start">—</span>
+
+    <!-- Track -->
+    <div class="timeline-bar__track-wrap">
+      <div class="timeline-bar__current" id="t-current">—</div>
+      <div class="timeline-bar__track" id="track">
+        <div class="timeline-bar__progress" id="track-progress"></div>
+        <!-- Event markers + ticks injected by JS -->
+        <div class="timeline-bar__head" id="track-head"></div>
+      </div>
+    </div>
+
+    <!-- End time -->
+    <span class="timeline-bar__time-end" id="t-end">—</span>
+    <span class="timeline-bar__duration" id="t-duration">&thinsp;—</span>
+
+  </div>
+
+  <!-- ③ WORKSPACE ─────────────────────────────────────────────────────────── -->
+  <div class="workspace">
+
+    <!-- LEFT SIDEBAR ─────────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+
+      <div class="sidebar__toggle">
+        <button class="sidebar__toggle-btn" onclick="toggleSidebar()" title="Collapse sidebar">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            <path d="M4 2h1v10H4V2zm2.5 2.5L10 7l-3.5 2.5V4.5z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Finder section -->
+      <div class="sidebar__section">
+        <div class="sidebar__section-header">
+          <span class="sidebar__section-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" opacity="0.7">
+              <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="sidebar__section-label">Find Parameters</span>
+        </div>
+        <div class="sidebar__section-body">
+          <div class="sidebar__search">
+            <svg class="sidebar__search-icon" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M8 8l2.5 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            <input class="sidebar__search-input" type="text" placeholder="Search…">
+          </div>
+          <div class="sidebar__filters" id="finder-filters">
+            <button class="filter-toggle is-active" data-filter="Event">Event</button>
+            <button class="filter-toggle is-active" data-filter="Parm">Parm</button>
+            <button class="filter-toggle is-active" data-filter="KTI">KTI</button>
+            <button class="filter-toggle is-active" data-filter="KPV">KPV</button>
+            <button class="filter-toggle is-active" data-filter="Phase">Phase</button>
+          </div>
+          <div id="finder-results"></div>
+        </div>
+      </div>
+
+      <!-- Layout section -->
+      <div class="sidebar__section">
+        <div class="sidebar__section-header">
+          <span class="sidebar__section-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.7">
+              <rect x="1" y="1" width="5.5" height="12" rx="1"/>
+              <rect x="7.5" y="1" width="5.5" height="5.5" rx="1"/>
+              <rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1"/>
+            </svg>
+          </span>
+          <span class="sidebar__section-label">Layout</span>
+        </div>
+        <div class="sidebar__section-body">
+          <div class="layout-options">
+            <button class="layout-option" title="Graphs only">
+              <div class="layout-option__icon">
+                <div class="layout-option__pane is-active" style="flex:1"></div>
+              </div>
+              <span>Full</span>
+            </button>
+            <button class="layout-option is-active" title="Graphs + 3D">
+              <div class="layout-option__icon">
+                <div class="layout-option__pane is-active"></div>
+                <div class="layout-option__pane is-active"></div>
+              </div>
+              <span>Split</span>
+            </button>
+            <button class="layout-option" title="3 panels">
+              <div class="layout-option__icon">
+                <div class="layout-option__pane is-active"></div>
+                <div class="layout-option__pane is-active"></div>
+                <div class="layout-option__pane is-active"></div>
+              </div>
+              <span>3-up</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar__footer">
+        <div class="sidebar__footer-link">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.6">
+            <rect x="1" y="1" width="12" height="12" rx="2"/>
+            <path d="M4 5h6M4 7.5h4"/>
+          </svg>
+          Templates
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- PANELS AREA ──────────────────────────────────────────────────────── -->
+    <div class="panels">
+
+      <!-- GRAPHS PANEL ─────────────────────────────────────────────────── -->
+      <div class="graphs-panel">
+
+        <!-- Module tab bar -->
+        <div class="panel-tabs" id="module-tabs">
+          <button class="panel-tab is-active" data-mod="graphs">Graphs</button>
+          <button class="panel-tab" data-mod="tabular">Tabular</button>
+          <button class="panel-tab" data-mod="approaches">Approaches</button>
+          <button class="panel-tab" data-mod="instruments">Instruments</button>
+          <button class="panel-tab" data-mod="status">Status</button>
+        </div>
+
+        <!-- Event summary strip (always visible, no filtering needed) -->
+        <div class="event-summary" id="event-summary">
+          <span class="event-summary__label">Events</span>
+          <!-- chips injected by JS -->
+          <button class="event-summary__simulate" id="btn-simulate">
+            <span class="event-summary__simulate-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+              </svg>
+            </span>
+            Simulate
+          </button>
+        </div>
+
+        <!-- ── Module: Graphs ────────────────────────────────────── -->
+        <div class="panel-content is-active" data-mod="graphs">
+          <div class="graphs-scroll" id="graphs-scroll">
+            <!-- graph cards rendered by JS -->
+          </div>
+          <div class="graph-drop-zone" style="margin: 0 8px 8px">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M7 2v10M2 7h10"/>
+            </svg>
+            Drop parameter here or click to add graph
+          </div>
+        </div><!-- /panel-content graphs -->
+
+        <!-- ── Module: Tabular ────────────────────────────────────── -->
+        <div class="panel-content" data-mod="tabular">
+          <div class="tabular-scroll">
+            <table class="tabular-table" id="tabular-table"></table>
+          </div>
+        </div>
+
+        <!-- ── Module: Approaches ─────────────────────────────────── -->
+        <div class="panel-content" data-mod="approaches">
+          <div class="approach-list" id="approach-list"></div>
+        </div>
+
+        <!-- ── Module: Instruments ────────────────────────────────── -->
+        <div class="panel-content" data-mod="instruments">
+          <div class="instruments-dash">
+            <!-- Primary Flight Display -->
+            <div class="pfd">
+              <!-- Speed tape (left column) -->
+              <div class="tape" id="tape-speed">
+                <div class="tape__label">IAS · kt</div>
+                <svg viewBox="0 0 50 200" preserveAspectRatio="none">
+                  <g id="speed-ticks"></g>
+                </svg>
+                <div class="tape__readout tape__readout--left" id="speed-readout">—</div>
+              </div>
+
+              <!-- Attitude indicator (center) -->
+              <div class="attitude" id="attitude">
+                <div class="attitude__sky" id="attitude-sky"></div>
+                <svg class="attitude__pitch-marks" id="pitch-marks" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+                <svg class="attitude__roll-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <g fill="none" stroke="#7FA8B8" stroke-width="0.5">
+                    <path d="M 20 50 A 30 30 0 0 1 80 50"/>
+                    <line x1="50" y1="20" x2="50" y2="14"/>
+                    <line x1="35" y1="22.5" x2="33" y2="17"/>
+                    <line x1="65" y1="22.5" x2="67" y2="17"/>
+                    <line x1="20" y1="35" x2="14" y2="32"/>
+                    <line x1="80" y1="35" x2="86" y2="32"/>
+                  </g>
+                </svg>
+                <div class="attitude__roll-pointer"></div>
+                <div class="attitude__crosshair"></div>
+              </div>
+
+              <!-- Altitude tape (right) -->
+              <div class="tape" id="tape-alt">
+                <div class="tape__label">ALT · ft</div>
+                <svg viewBox="0 0 50 200" preserveAspectRatio="none">
+                  <g id="alt-ticks"></g>
+                </svg>
+                <div class="tape__readout tape__readout--right" id="alt-readout">—</div>
+              </div>
+
+              <!-- VSI gauge (far right) -->
+              <div class="vsi-gauge" id="vsi-gauge">
+                <svg viewBox="0 0 30 200" preserveAspectRatio="none">
+                  <g fill="none" stroke="#3A6478" stroke-width="0.4" font-family="monospace" font-size="6">
+                    <line x1="0" y1="100" x2="30" y2="100" stroke="#074058" stroke-width="0.6"/>
+                    <line x1="20" y1="33"  x2="30" y2="33"/><text x="2" y="35" fill="#7FA8B8">2</text>
+                    <line x1="20" y1="66"  x2="30" y2="66"/><text x="2" y="68" fill="#7FA8B8">1</text>
+                    <line x1="20" y1="133" x2="30" y2="133"/><text x="2" y="136" fill="#7FA8B8">1</text>
+                    <line x1="20" y1="166" x2="30" y2="166"/><text x="2" y="169" fill="#7FA8B8">2</text>
+                  </g>
+                  <line id="vsi-needle" x1="0" y1="100" x2="30" y2="100" stroke="#28C8B9" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="tape__label" style="position:absolute;bottom:4px;top:auto">VSI · k·fpm</div>
+              </div>
+
+              <!-- Heading strip (bottom, full width) -->
+              <div class="heading-strip" id="heading-strip">
+                <svg viewBox="0 0 600 44" preserveAspectRatio="none">
+                  <g id="heading-ticks"></g>
+                </svg>
+                <div class="heading-strip__caret"></div>
+                <div class="heading-strip__readout" id="heading-readout">—</div>
+              </div>
+            </div>
+
+            <!-- Engines column -->
+            <div class="engines">
+              <div class="engines__col-headers">
+                <div></div><div>Eng 1</div><div>Eng 2</div>
+              </div>
+              <div class="engine-row">
+                <div class="engine-row__label">TRQ</div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng1Torque">—</span></div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng2Torque">—</span></div>
+              </div>
+              <div class="engine-row">
+                <div class="engine-row__label">N1</div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng1N1">—</span></div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng2N1">—</span></div>
+              </div>
+              <div class="engine-row">
+                <div class="engine-row__label">EGT</div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp1" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp1">—</span></div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp2" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp2">—</span></div>
+              </div>
+              <div class="engine-row engine-row--single">
+                <div class="engine-row__label">COL</div>
+                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="collective" data-min="0" data-max="100"></div><span class="engine-bar__value" data-bar-value-for="collective">—</span></div>
+              </div>
+
+              <div class="engine-digital">
+                <div class="engine-digital__cell">
+                  <div class="engine-digital__label">Groundspeed</div>
+                  <div class="engine-digital__value" id="dig-gs">—</div>
+                </div>
+                <div class="engine-digital__cell">
+                  <div class="engine-digital__label">Phase</div>
+                  <div class="engine-digital__value" id="dig-phase">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Module: Status ─────────────────────────────────────── -->
+        <div class="panel-content" data-mod="status">
+          <div class="status-grid" id="status-grid"></div>
+        </div>
+
+        <!-- legacy mock card kept hidden for the styles to be referenced -->
+      </div><!-- /graphs-panel -->
+
+      <!-- RESIZE HANDLE -->
+      <div class="resize-handle"></div>
+
+      <!-- RIGHT PANEL: 3D Visualizer + Map ────────────────────────────── -->
+      <div class="right-panel">
+
+        <div class="right-panel__tabs panel-tabs" id="right-tabs">
+          <div style="display:flex">
+            <button class="panel-tab is-active" data-rpane="3d">3D View</button>
+            <button class="panel-tab" data-rpane="map">Map</button>
+          </div>
+          <span style="font-family:var(--font-label);font-size:11px;font-weight:500;color:var(--color-text-muted);letter-spacing:0.06em">
+            Flight #46309524 · <span id="flight-aircraft">—</span>
+          </span>
+        </div>
+
+        <div class="visualizer-area">
+
+          <!-- 3D Visualizer -->
+          <div class="visualizer-pane" data-rpane="3d">
+            <div class="v-readout">
+              <div class="v-readout__row"><span>ALT AAL</span><strong id="v-alt">—</strong></div>
+              <div class="v-readout__row"><span>IAS</span><strong id="v-ias">—</strong></div>
+              <div class="v-readout__row"><span>VSI</span><strong id="v-vsi">—</strong></div>
+              <div class="v-readout__row"><span>HDG</span><strong id="v-hdg">—</strong></div>
+              <div class="v-readout__row"><span>PITCH</span><strong id="v-pitch">—</strong></div>
+              <div class="v-readout__row"><span>ROLL</span><strong id="v-roll">—</strong></div>
+            </div>
+            <div class="visualizer-placeholder">
+              <svg class="visualizer-placeholder__aircraft" viewBox="0 0 64 64" fill="white">
+                <path d="M32 4L20 36H28V60L32 58L36 60V36H44L32 4Z" opacity="0.9"/>
+                <path d="M10 30L28 34V28L10 24V30Z" opacity="0.5"/>
+                <path d="M54 30L36 34V28L54 24V30Z" opacity="0.5"/>
+                <path d="M20 54L28 52V56L20 58V54Z" opacity="0.3"/>
+                <path d="M44 54L36 52V56L44 58V54Z" opacity="0.3"/>
+              </svg>
+              <span class="visualizer-placeholder__label">3D Visualizer · pending WebGL integration</span>
+            </div>
+          </div>
+
+          <!-- Resize handle between 3D and Map -->
+          <div class="resize-handle resize-handle--vertical"></div>
+
+          <!-- Map -->
+          <div class="map-pane" data-rpane="map">
+            <svg id="map-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
+              <path id="map-track" class="map-track" d=""/>
+              <path id="map-track-flown" class="map-track-flown" d=""/>
+              <g id="map-events"></g>
+              <circle id="map-current" class="map-current" cx="0" cy="0" r="4"/>
+            </svg>
+          </div>
+
+        </div>
+
+      </div><!-- /right-panel -->
+
+    </div><!-- /panels -->
+
+  </div><!-- /workspace -->
+
+</div><!-- /app -->
+
+<script>
+/* ──────────────────────────────────────────────────────────────────────────
+   FLIGHT DATA — mock dataset modeled on flight #46309524 (helicopter, AW139)
+   ────────────────────────────────────────────────────────────────────────── */
+
+const FLIGHT = {
+  id: 46309524,
+  aircraft: "AW139 G-BJOP",
+  startStr: "15:06:59",
+  endStr:   "15:46:22",
+  durationSec: 39*60 + 23,
+  origin: "Aberdeen (EGPD)",
+  destination: "ETAP-1 Platform",
+  samples: 240,
+  phases: [
+    { name: "Engine Start", startPct: 0.00, endPct: 0.04 },
+    { name: "Taxi Out",     startPct: 0.04, endPct: 0.08 },
+    { name: "Takeoff",      startPct: 0.08, endPct: 0.12 },
+    { name: "Climb",        startPct: 0.12, endPct: 0.22 },
+    { name: "Cruise",       startPct: 0.22, endPct: 0.62 },
+    { name: "Descent",      startPct: 0.62, endPct: 0.82 },
+    { name: "Approach",     startPct: 0.82, endPct: 0.92 },
+    { name: "Landing",      startPct: 0.92, endPct: 0.96 },
+    { name: "Taxi In",      startPct: 0.96, endPct: 1.00 },
+  ],
+  events: [
+    { id:1, level:3, name:"Rate of Descent High 500-100ft", code:"RoD hi 500-100ft", pct:0.18, value:"-1850 fpm",  threshold:"-1500 fpm", phase:"Climb" },
+    { id:2, level:2, name:"Roll Attitude High >300ft",      code:"Roll hi >300ft",   pct:0.31, value:"24.6°",       threshold:"20°",         phase:"Cruise" },
+    { id:3, level:1, name:"Pitch Attitude Low <20ft",       code:"Pitch lo <20ft",   pct:0.47, value:"-2.8°",       threshold:"-2°",         phase:"Cruise" },
+    { id:4, level:3, name:"Rate of Descent High 1000-500ft",code:"RoD hi 1000-500ft",pct:0.62, value:"-2820 fpm",  threshold:"-2200 fpm", phase:"Descent" },
+    { id:5, level:2, name:"Airspeed High VMO",              code:"Airspeed hi VMO",  pct:0.78, value:"168 kt",      threshold:"165 kt",     phase:"Descent" },
+    { id:6, level:1, name:"IAS High at 50ft",               code:"IAS hi 50ft",      pct:0.93, value:"62 kt",       threshold:"55 kt",       phase:"Approach" },
+  ],
+  approaches: [
+    { id:1, runway:"ETAP-1 Helideck", type:"Visual", glideslope:"3.2°", touchdownPct:0.94 },
+  ],
+};
+
+/* ─── Time helpers ────────────────────────────────────────────────────── */
+const startSec = toSec(FLIGHT.startStr);
+function toSec(s){ const [h,m,ss]=s.split(":").map(Number); return h*3600+m*60+ss; }
+function fmtTime(sec){
+  sec = Math.round(sec);
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  return [h,m,s].map(n=>String(n).padStart(2,"0")).join(":");
+}
+function pctToTime(pct){ return fmtTime(startSec + pct*FLIGHT.durationSec); }
+
+/* ─── Series generator ────────────────────────────────────────────────── */
+function gen(samples, keyframes, opts={}) {
+  const out = new Array(samples);
+  const noise = opts.noise || 0;
+  const spikes = opts.spikes || [];
+  for (let i=0;i<samples;i++){
+    const t = i/(samples-1);
+    let prev = keyframes[0], next = keyframes[keyframes.length-1];
+    for (let j=0;j<keyframes.length-1;j++){
+      if (keyframes[j][0] <= t && keyframes[j+1][0] >= t){ prev=keyframes[j]; next=keyframes[j+1]; break; }
+    }
+    const span = next[0]-prev[0] || 1;
+    let u = (t-prev[0])/span;
+    u = u*u*(3-2*u);
+    let v = prev[1] + (next[1]-prev[1])*u;
+    if (noise) v += (Math.sin(i*0.91)+Math.cos(i*1.7)+Math.sin(i*0.31))*noise*0.33;
+    for (const sp of spikes){
+      const d = (t - sp.pct);
+      v += sp.amp * Math.exp(-(d*d)/(sp.width*sp.width));
+    }
+    out[i] = v;
+  }
+  return out;
+}
+
+const N = FLIGHT.samples;
+
+/* ─── Parameter set ───────────────────────────────────────────────────── */
+const PARAMETERS = {
+  altAal:    { name:"Alt AAL",    units:"ft",  color:"#28C8B9", group:"alt",    decimals:0,
+    series: gen(N, [[0,0],[.04,0],[.08,5],[.12,180],[.22,1480],[.55,1490],[.62,1500],[.7,1100],[.82,580],[.92,80],[.96,0],[1,0]], {noise:6}) },
+  altAdh:    { name:"Alt ADH",    units:"ft",  color:"#6DEB5D", group:"alt",    decimals:0,
+    series: gen(N, [[0,-15],[.04,-12],[.08,-8],[.12,165],[.22,1450],[.55,1460],[.62,1470],[.7,1070],[.82,550],[.92,55],[.96,-10],[1,-15]], {noise:5}) },
+  altRadio:  { name:"Alt Radio",  units:"ft",  color:"#F9F46E", group:"alt",    decimals:0,
+    series: gen(N, [[0,0],[.08,1],[.12,170],[.22,1490],[.62,1495],[.82,560],[.92,40],[1,0]], {noise:4}) },
+  airspeed:  { name:"Airspeed",   units:"kt",  color:"#FF6019", group:"alt",    decimals:1,
+    series: gen(N, [[0,0],[.08,0],[.12,55],[.18,90],[.22,138],[.5,140],[.62,138],[.78,165],[.82,100],[.92,55],[.96,3],[1,0]], {noise:1.6, spikes:[{pct:0.78,amp:6,width:0.015}]}) },
+  eng1Torque:{ name:"Eng (1) Torque", units:"%", color:"#28C8B9", group:"power", decimals:1,
+    series: gen(N, [[0,4],[.04,32],[.08,72],[.12,78],[.22,52],[.62,55],[.82,64],[.92,68],[.96,30],[1,5]], {noise:1.4}) },
+  eng2Torque:{ name:"Eng (2) Torque", units:"%", color:"#6DEB5D", group:"power", decimals:1,
+    series: gen(N, [[0,4],[.04,32],[.08,71],[.12,77],[.22,51],[.62,54],[.82,63],[.92,67],[.96,29],[1,5]], {noise:1.4}) },
+  collective:{ name:"Collective", units:"%",   color:"#F9F46E", group:"power",  decimals:1,
+    series: gen(N, [[0,10],[.04,25],[.08,62],[.12,70],[.22,55],[.62,55],[.82,60],[.92,65],[.96,28],[1,10]], {noise:1.2}) },
+  pitch:     { name:"Pitch",      units:"°",   color:"#28C8B9", group:"attitude",decimals:1,
+    series: gen(N, [[0,0],[.08,2],[.22,2],[.62,1],[.82,-1],[.92,1],[1,0]], {noise:0.6, spikes:[{pct:0.47,amp:-3.6,width:0.012}]}) },
+  vsi:       { name:"Vert Speed", units:"fpm", color:"#F9F46E", group:"attitude",decimals:0,
+    series: gen(N, [[0,0],[.12,1100],[.22,200],[.55,0],[.62,-100],[.82,-700],[.92,-300],[.96,-50],[1,0]], {noise:60, spikes:[{pct:0.18,amp:-1900,width:0.01},{pct:0.62,amp:-2700,width:0.012}]}) },
+  roll:      { name:"Roll",       units:"°",   color:"#6DEB5D", group:"attitude",decimals:1,
+    series: gen(N, [[0,0],[.22,0],[.5,0],[.62,0],[1,0]], {noise:1.4, spikes:[{pct:0.31,amp:25,width:0.013}]}) },
+  heading:   { name:"Heading",    units:"°",   color:"#7FA8B8", group:"nav",     decimals:0,
+    series: gen(N, [[0,10],[.12,15],[.22,55],[.4,80],[.62,90],[.82,120],[.92,138],[1,140]], {noise:0.8}) },
+  gasTemp1:  { name:"Gas Temp (1)", units:"°C", color:"#FF6019", group:"engine", decimals:1,
+    series: gen(N, [[0,80],[.04,140],[.08,210],[.12,225],[.22,178],[.62,176],[.82,200],[.92,205],[.96,150],[1,90]], {noise:2.1}) },
+  gasTemp2:  { name:"Gas Temp (2)", units:"°C", color:"#F9F46E", group:"engine", decimals:1,
+    series: gen(N, [[0,80],[.04,140],[.08,210],[.12,224],[.22,177],[.62,175],[.82,199],[.92,204],[.96,150],[1,90]], {noise:2.1}) },
+  eng1N1:    { name:"Eng (1) N1",   units:"%",  color:"#28C8B9", group:"engine", decimals:1,
+    series: gen(N, [[0,20],[.04,55],[.08,82],[.12,86],[.22,72],[.62,73],[.82,80],[.92,82],[.96,55],[1,22]], {noise:0.7}) },
+  eng2N1:    { name:"Eng (2) N1",   units:"%",  color:"#6DEB5D", group:"engine", decimals:1,
+    series: gen(N, [[0,20],[.04,55],[.08,81],[.12,85],[.22,71],[.62,72],[.82,79],[.92,81],[.96,55],[1,22]], {noise:0.7}) },
+};
+
+/* ─── Default graphs configuration (which params show in which card) ──── */
+const GRAPHS = [
+  { title:"Altitude / Airspeed",   yAxis:["0", "500", "1000", "1500"],     params:["altAal","altAdh","altRadio","airspeed"] },
+  { title:"Engine Torque / Coll.", yAxis:["0%", "50%", "100%"],            params:["eng1Torque","eng2Torque","collective"] },
+  { title:"Attitude",              yAxis:["+30°", "0°", "-30°"],           params:["pitch","vsi","roll"] },
+  { title:"Engines",               yAxis:["0", "100", "200"],              params:["gasTemp1","gasTemp2","eng1N1","eng2N1"] },
+];
+
+/* ──────────────────────────────────────────────────────────────────────────
+   APP STATE
+   ────────────────────────────────────────────────────────────────────────── */
+const STATE = {
+  pct: 0.18,           // current playhead position
+  playing: false,
+  speed: 1,
+  rightPane: "3d",
+  module: "graphs",
+};
+
+/* ──────────────────────────────────────────────────────────────────────────
+   RENDER — initial DOM construction
+   ────────────────────────────────────────────────────────────────────────── */
+
+function $(s, root=document) { return root.querySelector(s); }
+function $$(s, root=document) { return Array.from(root.querySelectorAll(s)); }
+function el(tag, cls, html) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  return e;
+}
+
+/* — Timeline header — */
+function renderTimeline() {
+  $("#flight-aircraft").textContent = FLIGHT.aircraft;
+  $("#t-start").textContent = FLIGHT.startStr;
+  $("#t-end").textContent   = FLIGHT.endStr;
+  const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
+  $("#t-duration").innerHTML = `&thinsp;${m} min ${s}s`;
+
+  const track = $("#track");
+  const head = $("#track-head");
+  // ticks
+  for (let i=0;i<=8;i++) {
+    const t = el("div", "timeline-bar__tick " + (i%2===0?"major":"minor"));
+    t.style.left = (i/8 * 100) + "%";
+    track.insertBefore(t, head);
+  }
+  // event markers
+  FLIGHT.events.forEach(ev => {
+    const m = el("div", "event-marker level-" + ev.level);
+    m.style.left = (ev.pct*100) + "%";
+    m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
+    m.addEventListener("click", e => { e.stopPropagation(); seekTo(ev.pct); });
+    track.insertBefore(m, head);
+  });
+}
+
+/* — Event chips above graphs — */
+function renderEventChips() {
+  const sum = $("#event-summary");
+  const sim = $("#btn-simulate");
+  FLIGHT.events.forEach(ev => {
+    const c = el("button", "event-chip level-" + ev.level);
+    c.innerHTML = `<div class="event-chip__dot"></div>${ev.code}`;
+    c.title = `${ev.name} · ${ev.value} (threshold ${ev.threshold}) · ${pctToTime(ev.pct)}`;
+    c.addEventListener("click", () => seekTo(ev.pct));
+    sum.insertBefore(c, sim);
+  });
+}
+
+/* — Finder list — */
+function renderFinder() {
+  const root = $("#finder-results");
+  root.innerHTML = "";
+  const filters = new Set($$("#finder-filters .filter-toggle.is-active").map(b => b.dataset.filter));
+  const q = ($("#finder-search")?.value || "").toLowerCase();
+  const matches = (name) => !q || name.toLowerCase().includes(q);
+
+  if (filters.has("Event") && FLIGHT.events.some(e=>matches(e.code))) {
+    root.appendChild(group("Events", FLIGHT.events.filter(e=>matches(e.code)).map(ev => ({
+      label: ev.code,
+      meta:  pctToTime(ev.pct),
+      color: ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D",
+      onClick: () => seekTo(ev.pct),
+    }))));
+  }
+  if (filters.has("Parm")) {
+    const list = Object.values(PARAMETERS).filter(p=>matches(p.name)).map(p => ({
+      label: p.name, meta: p.units, color: p.color,
+    }));
+    if (list.length) root.appendChild(group("Parameters", list));
+  }
+  if (filters.has("KTI")) {
+    const ktis = [
+      {label:"Liftoff",  pct:0.085}, {label:"Top of Climb", pct:0.22},
+      {label:"Top of Descent", pct:0.62}, {label:"Touchdown", pct:0.94},
+    ].filter(k=>matches(k.label));
+    if (ktis.length) root.appendChild(group("KTIs", ktis.map(k=>({
+      label:k.label, meta:pctToTime(k.pct), color:"#7FA8B8",
+      onClick: () => seekTo(k.pct),
+    }))));
+  }
+  if (filters.has("KPV")) {
+    const kpvs = [
+      {label:"Airspeed Max", value:"168 kt", pct:0.78},
+      {label:"Altitude Max", value:"1502 ft", pct:0.45},
+      {label:"VS Min",        value:"-2820 fpm", pct:0.62},
+    ].filter(k=>matches(k.label));
+    if (kpvs.length) root.appendChild(group("KPVs", kpvs.map(k=>({
+      label:k.label, meta:k.value, color:"#28C8B9",
+      onClick: () => seekTo(k.pct),
+    }))));
+  }
+  if (filters.has("Phase")) {
+    const phs = FLIGHT.phases.filter(p=>matches(p.name));
+    if (phs.length) root.appendChild(group("Phases", phs.map(p=>({
+      label:p.name, meta:pctToTime(p.startPct), color:"#3A6478",
+      onClick: () => seekTo(p.startPct),
+    }))));
+  }
+
+  function group(label, items){
+    const g = el("div");
+    g.appendChild(el("div", "finder-group-label", label));
+    items.forEach(it => {
+      const i = el("div", "finder-item");
+      i.innerHTML = `<div class="finder-item__dot" style="background:${it.color}"></div>${it.label}` +
+        (it.meta ? `<span style="margin-left:auto;font-family:var(--font-label);font-size:10px;color:var(--color-text-muted)">${it.meta}</span>` : "");
+      if (it.onClick) i.addEventListener("click", it.onClick);
+      g.appendChild(i);
+    });
+    return g;
+  }
+}
+
+/* — Graph cards — */
+function renderGraphs() {
+  const root = $("#graphs-scroll");
+  root.innerHTML = "";
+  GRAPHS.forEach((g, idx) => {
+    const card = el("div", "graph-card");
+    card.dataset.graphIdx = idx;
+    // header
+    const header = el("div", "graph-card__header");
+    const legend = el("div", "graph-card__legend");
+    g.params.forEach(pid => {
+      const p = PARAMETERS[pid];
+      const item = el("div", "graph-card__legend-item");
+      item.innerHTML = `<div class="graph-card__legend-swatch" style="background:${p.color}"></div>${p.name}<span class="graph-card__legend-value" data-legend-for="${pid}">—</span>`;
+      legend.appendChild(item);
+    });
+    header.appendChild(legend);
+    const actions = el("div", "graph-card__actions",
+      `<button class="graph-card__action-btn" title="Options"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="2" cy="6" r="1"/><circle cx="6" cy="6" r="1"/><circle cx="10" cy="6" r="1"/></svg></button>`);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    // plot
+    const plot = el("div", "graph-card__plot");
+    const yAxis = el("div", "graph-card__y-axis");
+    g.yAxis.forEach(y => yAxis.appendChild(el("span", "graph-card__y-label", y)));
+    plot.appendChild(yAxis);
+
+    // event lines
+    FLIGHT.events.forEach(ev => {
+      const line = el("div", "graph-event-line level-" + ev.level);
+      line.style.left = (ev.pct*100) + "%";
+      line.title = `${ev.code} · ${pctToTime(ev.pct)}`;
+      line.addEventListener("click", () => seekTo(ev.pct));
+      plot.appendChild(line);
+    });
+
+    // svg series
+    const placeholder = el("div", "graph-placeholder");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 500 80");
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    // compute y-range from all params in this graph
+    const allVals = g.params.flatMap(pid => PARAMETERS[pid].series);
+    const yMin = Math.min(...allVals), yMax = Math.max(...allVals);
+    const ySpan = (yMax - yMin) || 1;
+    const yPad = ySpan * 0.08;
+
+    g.params.forEach(pid => {
+      const p = PARAMETERS[pid];
+      const pts = p.series.map((v, i) => {
+        const x = (i/(N-1)) * 500;
+        const y = 80 - ((v - yMin + yPad) / (ySpan + yPad*2)) * 80;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      line.setAttribute("fill", "none");
+      line.setAttribute("stroke", p.color);
+      line.setAttribute("stroke-width", "1.5");
+      line.setAttribute("opacity", "0.85");
+      line.setAttribute("points", pts);
+      svg.appendChild(line);
+    });
+    placeholder.appendChild(svg);
+    plot.appendChild(placeholder);
+
+    // playhead
+    const ph = el("div", "graph-playhead");
+    ph.dataset.playhead = "1";
+    plot.appendChild(ph);
+
+    card.appendChild(plot);
+    root.appendChild(card);
+  });
+}
+
+/* — Tabular — */
+function renderTabular() {
+  const t = $("#tabular-table");
+  t.innerHTML = "";
+  const params = Object.values(PARAMETERS);
+  const head = el("thead"); const hr = el("tr");
+  hr.appendChild(el("th", null, "Time"));
+  params.forEach(p => hr.appendChild(el("th", null, `${p.name}<br><span style="opacity:.6">${p.units}</span>`)));
+  head.appendChild(hr); t.appendChild(head);
+  const body = el("tbody"); body.id = "tabular-body";
+  // sample every Nth row to keep table reasonable
+  const step = 4;
+  for (let i=0; i<N; i+=step) {
+    const tr = el("tr");
+    tr.dataset.sampleIdx = i;
+    tr.appendChild(el("td", null, pctToTime(i/(N-1))));
+    params.forEach(p => tr.appendChild(el("td", null, p.series[i].toFixed(p.decimals))));
+    body.appendChild(tr);
+  }
+  t.appendChild(body);
+}
+
+/* — Approaches — */
+function renderApproaches() {
+  const root = $("#approach-list");
+  root.innerHTML = "";
+  FLIGHT.approaches.forEach(a => {
+    const item = el("div", "approach-item");
+    item.innerHTML = `
+      <div class="approach-item__id">#${a.id}</div>
+      <div>
+        <div class="approach-item__name">${a.runway}</div>
+        <div class="approach-item__meta">${a.type} · GS ${a.glideslope} · TD ${pctToTime(a.touchdownPct)}</div>
+      </div>
+      <button class="approach-item__action">Jump to TD</button>`;
+    item.querySelector(".approach-item__action").addEventListener("click", () => seekTo(a.touchdownPct));
+    root.appendChild(item);
+  });
+}
+
+/* — Status cards — */
+function renderStatus() {
+  const root = $("#status-grid");
+  root.innerHTML = "";
+  const cards = [
+    { label:"Flight",       value:"#"+FLIGHT.id, sub:FLIGHT.aircraft },
+    { label:"Origin",       value:FLIGHT.origin },
+    { label:"Destination",  value:FLIGHT.destination },
+    { label:"Duration",     value:Math.floor(FLIGHT.durationSec/60)+":"+String(FLIGHT.durationSec%60).padStart(2,"0") },
+    { label:"Events L3",    value:FLIGHT.events.filter(e=>e.level===3).length, sub:"Severe" },
+    { label:"Events L2",    value:FLIGHT.events.filter(e=>e.level===2).length, sub:"Moderate" },
+    { label:"Events L1",    value:FLIGHT.events.filter(e=>e.level===1).length, sub:"Low" },
+    { label:"Approaches",   value:FLIGHT.approaches.length },
+  ];
+  cards.forEach(c => {
+    const card = el("div", "status-card");
+    card.innerHTML = `<div class="status-card__label">${c.label}</div>
+      <div class="status-card__value">${c.value}</div>
+      ${c.sub ? `<div class="status-card__sub">${c.sub}</div>` : ""}`;
+    root.appendChild(card);
+  });
+}
+
+/* — Instruments dashboard (PFD + Engines) — */
+const SPEED_SCALE = 1.4;   // svg-units per kt   (viewBox height 200, so ±71kt visible)
+const ALT_SCALE   = 0.07;  // svg-units per ft   (±1430ft visible)
+const HDG_PX_PER_DEG = 4;  // svg-units per degree on heading strip
+
+function renderInstruments() {
+  buildTapeTicks($("#speed-ticks"), 0, 220, 20, 10, SPEED_SCALE, "kt");
+  buildTapeTicks($("#alt-ticks"),   0, 2500, 200, 100, ALT_SCALE, "ft");
+  buildPitchMarks($("#pitch-marks"));
+  buildHeadingTicks($("#heading-ticks"));
+}
+
+function buildTapeTicks(g, min, max, majorEvery, minorEvery, scale, unit) {
+  const isAlt = unit === "ft";
+  let s = "";
+  // minor ticks
+  for (let v = min; v <= max; v += minorEvery) {
+    if (v % majorEvery === 0) continue;
+    const y = -v * scale;
+    s += `<line x1="${isAlt?0:42}" y1="${y.toFixed(2)}" x2="${isAlt?8:50}" y2="${y.toFixed(2)}" stroke="#3A6478" stroke-width="0.4"/>`;
+  }
+  // major ticks + labels
+  for (let v = min; v <= max; v += majorEvery) {
+    const y = -v * scale;
+    s += `<line x1="${isAlt?0:35}" y1="${y.toFixed(2)}" x2="${isAlt?14:50}" y2="${y.toFixed(2)}" stroke="#7FA8B8" stroke-width="0.6"/>`;
+    s += `<text x="${isAlt?18:32}" y="${(y+2).toFixed(2)}" font-size="7" fill="#7FA8B8" font-family="monospace" text-anchor="${isAlt?'start':'end'}">${v}</text>`;
+  }
+  g.innerHTML = s;
+}
+
+function buildPitchMarks(svg) {
+  // ladder lines every 5° (small) and 10° (big with label) within ±40°
+  let s = "";
+  for (let p = -40; p <= 40; p += 5) {
+    if (p === 0) continue;
+    const big = p % 10 === 0;
+    const w = big ? 30 : 14;
+    const y = -p; // 1 svg-unit per degree
+    s += `<line x1="${-w/2}" y1="${y}" x2="${w/2}" y2="${y}" stroke="#FFFFFF" stroke-width="0.4" opacity="0.7"/>`;
+    if (big) {
+      s += `<text x="${-w/2-2}" y="${y+1.5}" font-size="4" fill="#FFFFFF" opacity="0.7" text-anchor="end">${Math.abs(p)}</text>`;
+      s += `<text x="${ w/2+2}" y="${y+1.5}" font-size="4" fill="#FFFFFF" opacity="0.7" text-anchor="start">${Math.abs(p)}</text>`;
+    }
+  }
+  svg.innerHTML = s;
+}
+
+function buildHeadingTicks(g) {
+  // Draw 0..720° (two laps) so the strip wraps cleanly
+  let s = "";
+  for (let h = 0; h <= 720; h += 5) {
+    const x = h * HDG_PX_PER_DEG;
+    const major = h % 30 === 0;
+    s += `<line x1="${x}" y1="${major?0:8}" x2="${x}" y2="22" stroke="#7FA8B8" stroke-width="${major?0.6:0.3}" opacity="${major?0.9:0.5}"/>`;
+    if (major) {
+      let label = ((h % 360) / 10).toFixed(0);
+      if (h % 360 === 0) label = "N";
+      else if (h % 360 === 90) label = "E";
+      else if (h % 360 === 180) label = "S";
+      else if (h % 360 === 270) label = "W";
+      s += `<text x="${x}" y="38" font-size="9" fill="#FFFFFF" opacity="0.85" text-anchor="middle" font-family="monospace">${label}</text>`;
+    }
+  }
+  g.innerHTML = s;
+}
+
+function currentPhase(pct) {
+  const p = FLIGHT.phases.find(ph => pct >= ph.startPct && pct < ph.endPct);
+  return p ? p.name : "—";
+}
+
+/* — Map (synthetic flight path) — */
+function renderMap() {
+  // Build a smooth SVG path going across the viewport, with a curve in cruise
+  const W = 500, H = 200;
+  const samples = 60;
+  const pathPts = [];
+  for (let i=0;i<=samples;i++) {
+    const t = i/samples;
+    const x = 30 + t*(W-60);
+    const cruiseBow = Math.sin(Math.PI * Math.max(0, (t-0.12)/0.7)) * 50;
+    const y = H - 30 - cruiseBow - (t<0.92 ? 0 : (t-0.92)*200);
+    pathPts.push([x,y]);
+  }
+  const d = pathPts.map((p,i)=> (i===0?"M":"L")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  $("#map-track").setAttribute("d", d);
+  // store for later
+  window.__mapPath = pathPts;
+  // events
+  const g = $("#map-events");
+  g.innerHTML = "";
+  FLIGHT.events.forEach(ev => {
+    const idx = Math.min(samples, Math.round(ev.pct*samples));
+    const [x,y] = pathPts[idx];
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", x); c.setAttribute("cy", y); c.setAttribute("r", 4);
+    c.setAttribute("fill", ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D");
+    c.setAttribute("stroke", "#021C25"); c.setAttribute("stroke-width", "1");
+    c.style.cursor = "pointer";
+    c.addEventListener("click", () => seekTo(ev.pct));
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    t.textContent = `${ev.code} · ${pctToTime(ev.pct)}`;
+    c.appendChild(t);
+    g.appendChild(c);
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   UPDATE — runs whenever STATE.pct changes
+   ────────────────────────────────────────────────────────────────────────── */
+function update() {
+  const pct = STATE.pct;
+  const pctStr = (pct*100).toFixed(2) + "%";
+
+  // timeline head
+  $("#track-head").style.left = pctStr;
+  $("#track-progress").style.width = pctStr;
+  const cur = $("#t-current");
+  cur.style.left = pctStr;
+  cur.textContent = pctToTime(pct);
+
+  // graph playheads
+  $$(".graph-playhead").forEach(ph => ph.style.left = pctStr);
+
+  // legend current values
+  const idx = Math.round(pct*(N-1));
+  Object.entries(PARAMETERS).forEach(([pid, p]) => {
+    const v = p.series[idx];
+    const label = (Math.abs(v) < 0.05 ? "0" : v.toFixed(p.decimals)) + " " + p.units;
+    $$(`[data-legend-for="${pid}"]`).forEach(s => s.textContent = label);
+  });
+
+  // tabular row highlight
+  $$("#tabular-body tr").forEach(tr => {
+    const i = +tr.dataset.sampleIdx;
+    tr.classList.toggle("is-current", Math.abs(i - idx) < 4);
+  });
+
+  // 3D readout
+  set("v-alt", PARAMETERS.altAal.series[idx].toFixed(0)+" ft");
+  set("v-ias", PARAMETERS.airspeed.series[idx].toFixed(0)+" kt");
+  set("v-vsi", PARAMETERS.vsi.series[idx].toFixed(0)+" fpm");
+  set("v-hdg", PARAMETERS.heading.series[idx].toFixed(0)+"°");
+  set("v-pitch", PARAMETERS.pitch.series[idx].toFixed(1)+"°");
+  set("v-roll", PARAMETERS.roll.series[idx].toFixed(1)+"°");
+
+  // ── PFD: Attitude indicator ────────────────────────────────────────
+  const pitch = PARAMETERS.pitch.series[idx];
+  const roll  = PARAMETERS.roll.series[idx];
+  // Sky/ground: rotate by -roll, translate vertically by pitch (1.5% per degree)
+  const skyTx = `rotate(${(-roll).toFixed(2)}deg) translateY(${(pitch*1.5).toFixed(2)}%)`;
+  const sky = $("#attitude-sky");
+  if (sky) sky.style.transform = skyTx;
+  const ladder = $("#pitch-marks");
+  if (ladder) ladder.style.transform = `rotate(${(-roll).toFixed(2)}deg) translateY(${(pitch).toFixed(2)}%)`;
+  // Roll pointer arc
+  const rollPtr = document.querySelector(".attitude__roll-pointer");
+  if (rollPtr) rollPtr.style.transform = `translateX(-50%) rotate(${(-roll).toFixed(2)}deg)`;
+  // The roll pointer rotates around the centre of the attitude indicator
+  if (rollPtr) {
+    rollPtr.style.transformOrigin = "50% calc(100% + 100px)";
+  }
+
+  // ── PFD: Speed tape ──────────────────────────────────────────────────
+  const ias = PARAMETERS.airspeed.series[idx];
+  const speedTicks = $("#speed-ticks");
+  if (speedTicks) speedTicks.setAttribute("transform", `translate(0, ${(100 + ias*SPEED_SCALE).toFixed(2)})`);
+  set("speed-readout", ias.toFixed(0));
+
+  // ── PFD: Altitude tape ───────────────────────────────────────────────
+  const alt = PARAMETERS.altAal.series[idx];
+  const altTicks = $("#alt-ticks");
+  if (altTicks) altTicks.setAttribute("transform", `translate(0, ${(100 + alt*ALT_SCALE).toFixed(2)})`);
+  set("alt-readout", alt.toFixed(0));
+
+  // ── PFD: VSI needle ─────────────────────────────────────────────────
+  const vsi = PARAMETERS.vsi.series[idx];
+  const vsiClamped = Math.max(-3000, Math.min(3000, vsi));
+  const vsiY = 100 - vsiClamped/30;   // 1 svg-unit per 30 fpm; ±3000fpm → ±100
+  const needle = $("#vsi-needle");
+  if (needle) { needle.setAttribute("y2", vsiY.toFixed(2)); }
+
+  // ── PFD: Heading strip ──────────────────────────────────────────────
+  const hdg = ((PARAMETERS.heading.series[idx] % 360) + 360) % 360;
+  const hdgTicks = $("#heading-ticks");
+  // viewBox width 600 (centre at 300); we translate so current heading sits at centre
+  // Add a 360° offset so we draw from the second lap (avoid negative values)
+  if (hdgTicks) hdgTicks.setAttribute("transform", `translate(${(300 - (hdg+360)*HDG_PX_PER_DEG).toFixed(2)}, 0)`);
+  set("heading-readout", String(Math.round(hdg)).padStart(3,"0") + "°");
+
+  // ── Engines bars ────────────────────────────────────────────────────
+  $$("[data-bar-for]").forEach(bar => {
+    const id = bar.dataset.barFor;
+    const p  = PARAMETERS[id];
+    const v  = p.series[idx];
+    const mn = +bar.dataset.min, mx = +bar.dataset.max;
+    const norm = Math.max(0, Math.min(1, (v - mn)/(mx - mn)));
+    bar.style.width = (norm*100).toFixed(1) + "%";
+    bar.classList.toggle("danger",  norm > 0.85);
+    bar.classList.toggle("warning", norm > 0.70 && norm <= 0.85);
+  });
+  $$("[data-bar-value-for]").forEach(span => {
+    const id = span.dataset.barValueFor;
+    const p  = PARAMETERS[id];
+    span.textContent = p.series[idx].toFixed(p.decimals) + " " + p.units;
+  });
+
+  // Engines digital readouts
+  set("dig-gs", Math.max(0, ias - 5).toFixed(0) + " kt");   // mock GS ≈ IAS − headwind
+  set("dig-phase", currentPhase(pct));
+
+  // map current position + flown portion
+  if (window.__mapPath) {
+    const pts = window.__mapPath;
+    const f = pct * (pts.length-1);
+    const i0 = Math.floor(f), i1 = Math.min(pts.length-1, i0+1);
+    const u = f - i0;
+    const cx = pts[i0][0] + (pts[i1][0]-pts[i0][0])*u;
+    const cy = pts[i0][1] + (pts[i1][1]-pts[i0][1])*u;
+    const c = $("#map-current"); c.setAttribute("cx", cx); c.setAttribute("cy", cy);
+    const flown = pts.slice(0, i0+1).concat([[cx,cy]]);
+    $("#map-track-flown").setAttribute("d", flown.map((p,i)=>(i===0?"M":"L")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" "));
+  }
+}
+
+function set(id, val){ const e = document.getElementById(id); if (e) e.textContent = val; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   INTERACTIONS
+   ────────────────────────────────────────────────────────────────────────── */
+function seekTo(pct) {
+  STATE.pct = Math.max(0, Math.min(1, pct));
+  update();
+}
+
+function setupTimeline() {
+  const track = $("#track");
+  let dragging = false;
+  function onPos(e){
+    const rect = track.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    seekTo(x/rect.width);
+  }
+  track.addEventListener("mousedown", e => { dragging = true; onPos(e); });
+  document.addEventListener("mousemove", e => { if (dragging) onPos(e); });
+  document.addEventListener("mouseup",   () => dragging = false);
+  track.addEventListener("touchstart", onPos);
+  track.addEventListener("touchmove",  onPos);
+}
+
+function setupPlayback() {
+  const btn = $("#btn-play");
+  const icon = $("#btn-play-icon");
+  function paint() {
+    icon.innerHTML = STATE.playing
+      ? '<path d="M2 1.5h3v11H2zM7 1.5h3v11H7z"/>'
+      : '<path d="M1.5 1.5l9 5.5-9 5.5V1.5z"/>';
+  }
+  btn.addEventListener("click", () => { STATE.playing = !STATE.playing; paint(); });
+  $("#playback-speed").addEventListener("change", e => STATE.speed = parseFloat(e.target.value));
+
+  $("#btn-prev").addEventListener("click", () => {
+    const prev = [...FLIGHT.events].reverse().find(e => e.pct < STATE.pct - 0.001);
+    if (prev) seekTo(prev.pct);
+  });
+  $("#btn-next").addEventListener("click", () => {
+    const nxt = FLIGHT.events.find(e => e.pct > STATE.pct + 0.001);
+    if (nxt) seekTo(nxt.pct);
+  });
+
+  let last = performance.now();
+  function loop(now) {
+    const dt = (now - last)/1000;
+    last = now;
+    if (STATE.playing) {
+      const dPct = (dt * STATE.speed) / FLIGHT.durationSec;
+      STATE.pct += dPct;
+      if (STATE.pct >= 1) { STATE.pct = 1; STATE.playing = false; paint(); }
+      update();
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  paint();
+}
+
+function setupModuleTabs() {
+  $$("#module-tabs .panel-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      $$("#module-tabs .panel-tab").forEach(t => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      const mod = tab.dataset.mod;
+      STATE.module = mod;
+      $$(".panel-content").forEach(c => c.classList.toggle("is-active", c.dataset.mod === mod));
+    });
+  });
+}
+
+function setupRightTabs() {
+  $$("#right-tabs .panel-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      $$("#right-tabs .panel-tab").forEach(t => t.classList.remove("is-active"));
+      tab.classList.add("is-active");
+      const p = tab.dataset.rpane;
+      STATE.rightPane = p;
+      $$('.visualizer-pane, .map-pane').forEach(el => {
+        el.style.display = (el.dataset.rpane === p) ? "" : "none";
+      });
+    });
+  });
+  // initial — show only 3D
+  $$('.map-pane').forEach(el => el.style.display = "none");
+}
+
+function setupFinder() {
+  // search input gets an id
+  const input = document.querySelector(".sidebar__search-input");
+  if (input) { input.id = "finder-search"; input.addEventListener("input", renderFinder); }
+  $$("#finder-filters .filter-toggle").forEach(b => {
+    b.addEventListener("click", () => { b.classList.toggle("is-active"); renderFinder(); });
+  });
+}
+
+function setupLayoutOptions() {
+  $$(".layout-option").forEach(opt => {
+    opt.addEventListener("click", () => {
+      $$(".layout-option").forEach(o => o.classList.remove("is-active"));
+      opt.classList.add("is-active");
+      const idx = $$(".layout-option").indexOf(opt);
+      const panels = document.querySelector(".panels");
+      const right = document.querySelector(".right-panel");
+      const handle = document.querySelector(".panels > .resize-handle");
+      if (idx === 0) {
+        right.style.display = "none";
+        handle.style.display = "none";
+        document.querySelector(".graphs-panel").style.flex = "1";
+      } else {
+        right.style.display = "";
+        handle.style.display = "";
+        document.querySelector(".graphs-panel").style.flex = idx===2 ? "0 0 40%" : "0 0 58%";
+      }
+    });
+  });
+}
+
+function setupPanelResize() {
+  const handle = document.querySelector(".panels > .resize-handle");
+  const graphs = document.querySelector(".graphs-panel");
+  let dragging = false;
+  handle.addEventListener("mousedown", () => { dragging = true; document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none"; });
+  document.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    const panels = document.querySelector(".panels");
+    const rect = panels.getBoundingClientRect();
+    const pct = Math.max(25, Math.min(75, ((e.clientX-rect.left)/rect.width)*100));
+    graphs.style.flex = `0 0 ${pct}%`;
+  });
+  document.addEventListener("mouseup", () => { dragging = false; document.body.style.cursor = ""; document.body.style.userSelect = ""; });
+}
+
+function toggleSidebar() { $("#sidebar").classList.toggle("is-collapsed"); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BOOT
+   ────────────────────────────────────────────────────────────────────────── */
+renderTimeline();
+renderEventChips();
+renderFinder();
+renderGraphs();
+renderTabular();
+renderApproaches();
+renderInstruments();
+renderStatus();
+renderMap();
+
+setupTimeline();
+setupPlayback();
+setupModuleTabs();
+setupRightTabs();
+setupFinder();
+setupLayoutOptions();
+setupPanelResize();
+
+update();
+</script>
+
+</body>
+</html>
