@@ -49,10 +49,50 @@
     /* ─── App Shell ─────────────────────────────────────────────────────── */
     .app {
       display: grid;
-      grid-template-rows: var(--topbar-height) var(--timeline-height) 1fr;
+      grid-template-rows: var(--topbar-height) var(--timeline-height) auto 1fr;
       height: 100vh;
       overflow: hidden;
     }
+
+    /* Flight info strip — collapsed by default, expands on flight-name click */
+    .flight-info-strip {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.2s ease;
+    }
+    .flight-info-strip.is-open { max-height: 120px; }
+    .flight-info-strip__inner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px 24px;
+      padding: 14px 24px;
+    }
+    .flight-info-strip__inner > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .flight-info-strip__inner .kv-value {
+      font-family: var(--font-label); font-size: 13px;
+      color: var(--color-text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Make the flight chip act as a button */
+    button.timeline-bar__flight {
+      background: transparent; border: none; padding: 0; cursor: pointer;
+      text-align: left;
+    }
+    .timeline-bar__flight-caret {
+      display: inline-block;
+      font-size: 9px; color: var(--color-text-muted);
+      margin-left: 4px;
+      transition: transform 0.2s ease;
+    }
+    button.timeline-bar__flight[aria-expanded="true"] .timeline-bar__flight-caret {
+      transform: rotate(180deg);
+      color: var(--color-accent);
+    }
+    button.timeline-bar__flight:hover .timeline-bar__flight-id { color: var(--color-accent); }
+    button.timeline-bar__flight:hover .timeline-bar__flight-caret { color: var(--color-accent); }
 
     /* ─── Top Bar ───────────────────────────────────────────────────────── */
     .topbar {
@@ -268,6 +308,16 @@
       border-radius: 4px;
       cursor: pointer;
       overflow: visible;
+    }
+
+    /* Altitude profile — sits beneath markers, ticks, progress + head */
+    .timeline-bar__altitude {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
     }
 
     /* Played portion */
@@ -753,13 +803,191 @@
       border-style: dashed;
     }
 
-    /* ─── Main Panels ───────────────────────────────────────────────────── */
+    /* ─── Mosaic — nested-split-pane container ─────────────────────────── */
+    .mosaic {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: var(--color-border);
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+    }
+    .mosaic-split {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mosaic-split--h { flex-direction: row; }
+    .mosaic-split--v { flex-direction: column; }
+    .mosaic-pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mosaic-divider {
+      flex-shrink: 0;
+      background: var(--color-border);
+      position: relative;
+      transition: background 0.15s;
+      z-index: 4;
+    }
+    .mosaic-divider::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+    }
+    .mosaic-divider:hover, .mosaic-divider.is-active {
+      background: var(--color-accent);
+    }
+    .mosaic-divider--h { width: 1px; cursor: col-resize; }
+    .mosaic-divider--v { height: 1px; cursor: row-resize; }
+    .module {
+      background: var(--color-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+      position: relative;
+    }
+    .module.is-drag-target { outline: 2px dashed var(--color-accent); outline-offset: -3px; }
+    .module.is-dragging    { opacity: 0.45; }
+    .module__head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px 8px 14px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+      min-height: 36px;
+    }
+    .module__title {
+      font-family: var(--font-label);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+    }
+    .module__tabs {
+      display: flex; align-items: center; gap: 0;
+      margin-left: 4px;
+    }
+    .module__tab {
+      padding: 4px 10px;
+      font-family: var(--font-label);
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--color-text-muted);
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .module__tab:hover { color: var(--color-text-dim); }
+    .module__tab.is-active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .module__head-actions {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 2px;
+    }
+    .module__drag, .module__hide {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-muted);
+      background: transparent; border: none;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.15s, color 0.15s, background 0.15s;
+    }
+    .module:hover .module__drag,
+    .module:hover .module__hide { opacity: 1; }
+    .module__drag { cursor: grab; }
+    .module__drag:hover { color: var(--color-text); background: var(--color-surface-hi); }
+    .module__drag:active { cursor: grabbing; }
+    .module__hide:hover { color: var(--color-level-3); background: rgba(255,96,25,0.10); }
+    .module__body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: auto;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    /* Mosaic resize handles — slim grippers between grid tracks */
+    .mosaic-resize {
+      position: absolute;
+      background: transparent;
+      z-index: 5;
+      transition: background 0.15s;
+    }
+    .mosaic-resize:hover, .mosaic-resize.is-active { background: rgba(40,200,185,0.55); }
+    .mosaic-resize--col { cursor: col-resize; }
+    .mosaic-resize--row { cursor: row-resize; }
+
+    /* Empty mosaic state */
+    .mosaic--empty::after {
+      content: 'All modules hidden — re-enable from Layout in the sidebar footer.';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+      font-family: var(--font-label);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      padding: 24px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    /* Module-visibility checklist inside the Layout popover */
+    .module-toggles { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+    .module-toggle {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--color-text-dim);
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      text-align: left;
+    }
+    .module-toggle:hover { border-color: var(--color-accent); color: var(--color-text); }
+    .module-toggle__check {
+      width: 14px; height: 14px;
+      border: 1px solid var(--color-text-muted);
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .module-toggle.is-on .module-toggle__check {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: var(--color-bg);
+    }
+    .module-toggle.is-on .module-toggle__check::after {
+      content: "✓"; font-size: 10px; font-weight: 700; line-height: 1;
+    }
+    .module-toggle__label { flex: 1; }
+
+    /* ─── Legacy panels styles (kept for any historical refs) ──────────────── */
     .panels {
       flex: 1;
       display: flex;
       overflow: hidden;
       gap: var(--panel-gap);
-      background: var(--color-border); /* gap colour becomes divider */
+      background: var(--color-border);
     }
 
     /* ─── Graphs Panel ──────────────────────────────────────────────────── */
@@ -1379,12 +1607,11 @@
     /* Status — hierarchical page (hero · route · events · approaches) */
     .status-page { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
-    /* Hero — severity-led summary */
+    /* Hero — severity-led summary (judgment-only; flight ID lives elsewhere) */
     .status-hero {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
-      align-items: center;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
       padding: 18px 20px;
       border-radius: 8px;
       border-left: 4px solid var(--color-level-1);
@@ -1877,6 +2104,297 @@
       font-size: 10px;
       color: rgba(255,255,255,0.6);
     }
+    /* ─── Event popover (in-place response to pin click) ─────────────── */
+    .event-popover {
+      position: fixed;
+      width: 280px;
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
+      padding: 12px 14px;
+      z-index: 120;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .event-popover.is-open { display: flex; }
+    .event-popover__head {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .event-popover__title {
+      flex: 1; min-width: 0;
+      font-family: var(--font-label); font-size: 13px; font-weight: 500;
+      color: var(--color-text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .event-popover__time {
+      font-family: var(--font-label); font-size: 11px;
+      color: var(--color-text-dim);
+    }
+    .event-popover__close {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+      color: var(--color-text-muted);
+      font-size: 18px; line-height: 1;
+      margin-left: 2px;
+      flex-shrink: 0;
+    }
+    .event-popover__close:hover { background: var(--color-surface); color: var(--color-text); }
+    .event-popover__values {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 8px 0;
+      border-top: 1px solid var(--color-border);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .event-popover__values > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .event-popover__values .kv-value { font-size: 12px; }
+    .event-popover__pills {
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .event-popover__detail {
+      text-align: left;
+      padding: 6px 0 0;
+      font-family: var(--font-label); font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--color-accent);
+      background: transparent;
+      border: none;
+      border-top: 1px solid var(--color-border);
+      cursor: pointer;
+    }
+    .event-popover__detail:hover { color: var(--color-text); }
+
+    /* ─── Event Detail Drawer ────────────────────────────────────────── */
+    .event-drawer-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(2, 28, 37, 0.5);
+      z-index: 90;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    body.has-event-drawer .event-drawer-backdrop {
+      opacity: 1; pointer-events: auto;
+    }
+    .event-drawer {
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 520px; max-width: 92vw;
+      background: var(--color-bg);
+      border-left: 1px solid var(--color-border);
+      box-shadow: -8px 0 24px rgba(0,0,0,0.4);
+      z-index: 100;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      overflow: hidden;
+    }
+    body.has-event-drawer .event-drawer { transform: translateX(0); }
+    .event-drawer__head {
+      display: flex; align-items: baseline; gap: 12px;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .event-drawer__id {
+      font-family: var(--font-label); font-size: 11px;
+      color: var(--color-text-muted); letter-spacing: 0.04em;
+    }
+    .event-drawer__title {
+      flex: 1; min-width: 0;
+      font-family: var(--font-label); font-size: 18px; font-weight: 500;
+      color: var(--color-accent);
+      margin: 0;
+      line-height: 1.2;
+    }
+    .event-drawer__title small { color: var(--color-text-dim); font-size: 13px; font-weight: 400; margin-left: 4px; }
+    .event-drawer__close {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 4px;
+      color: var(--color-text-dim);
+      font-size: 22px; line-height: 1;
+      flex-shrink: 0;
+    }
+    .event-drawer__close:hover { background: var(--color-surface-hi); color: var(--color-text); }
+
+    .event-drawer__meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px 18px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .event-drawer__meta > div { display: flex; flex-direction: column; gap: 2px; }
+    .kv-label {
+      font-family: var(--font-label); font-size: 9px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .kv-value { font-size: 13px; color: var(--color-text); }
+
+    .event-drawer__card {
+      margin: 16px 18px 0;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      background: var(--color-surface);
+      padding: 14px 16px;
+      flex-shrink: 0;
+    }
+    .event-drawer__card-head {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .event-drawer__code {
+      font-family: var(--font-label); font-size: 14px; font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+    .event-drawer__card-values {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 6px 18px;
+    }
+    .event-drawer__card-values > div { display: flex; flex-direction: column; gap: 1px; }
+    .event-drawer__card-actions {
+      display: flex; align-items: center; gap: 10px;
+      padding-top: 12px;
+      flex-wrap: wrap;
+    }
+    .ev-btn--simulate {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 14px 5px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--color-text-dim);
+    }
+    .ev-btn--simulate:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .ev-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: 100px;
+      font-family: var(--font-label); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      cursor: pointer;
+      color: var(--color-text-dim);
+      background: transparent;
+    }
+    .ev-pill:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .ev-pill__caret { font-size: 8px; opacity: 0.7; }
+    .ev-pill__dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .ev-pill--validity { color: var(--color-text); }
+    .ev-pill--status-open       { color: var(--color-accent);   border-color: var(--color-accent); }
+    .ev-pill--status-in_progress{ color: #F9F46E; border-color: #F9F46E; }
+    .ev-pill--status-closed     { color: #6DEB5D; border-color: #6DEB5D; }
+
+    .event-drawer__section {
+      padding: 14px 18px;
+      border-top: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+    .event-drawer__section:nth-of-type(odd) { background: transparent; }
+    .event-drawer__section-label {
+      font-family: var(--font-label); font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .event-drawer__desc {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--color-text);
+      line-height: 1.5;
+    }
+    .event-drawer__compose {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 14px;
+    }
+    .event-drawer__compose-input {
+      width: 100%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      resize: vertical;
+      min-height: 60px;
+      outline: none;
+    }
+    .event-drawer__compose-input:focus { border-color: var(--color-accent); }
+    .event-drawer__compose-row { display: flex; justify-content: flex-end; }
+    .event-drawer__post {
+      padding: 6px 18px;
+      border: 1px solid var(--color-accent);
+      border-radius: 100px;
+      font-family: var(--font-label); font-size: 11px;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--color-accent);
+      background: transparent;
+    }
+    .event-drawer__post:hover { background: rgba(40,200,185,0.12); }
+    .event-drawer__no-comments {
+      font-size: 12px; color: var(--color-text-muted); font-style: italic;
+    }
+    .event-comment {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .event-comment:last-child { border-bottom: none; }
+    .event-comment__text { font-size: 13px; color: var(--color-text); line-height: 1.45; margin-bottom: 4px; }
+    .event-comment__meta { font-family: var(--font-label); font-size: 11px; color: var(--color-text-muted); }
+    .event-comment__meta strong { color: var(--color-text-dim); font-weight: 500; }
+
+    /* Drawer body scroll */
+    .event-drawer__meta + .event-drawer__card,
+    .event-drawer__card { flex-shrink: 0; }
+    .event-drawer { overflow-y: auto; }
+
+    /* Inline picker (status / validity) */
+    .inline-picker {
+      position: fixed;
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
+      padding: 4px;
+      z-index: 200;
+      min-width: 180px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+    }
+    .inline-picker button {
+      display: block; width: 100%;
+      padding: 6px 12px;
+      text-align: left;
+      font-family: var(--font-label); font-size: 11px;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--color-text-dim);
+      border-radius: 4px;
+    }
+    .inline-picker button:hover { background: rgba(40,200,185,0.10); color: var(--color-text); }
+    .inline-picker button[data-dot]::before {
+      content: ''; display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      margin-right: 8px; vertical-align: middle;
+    }
+    .inline-picker button[data-dot="open"]::before        { background: var(--color-accent); }
+    .inline-picker button[data-dot="in_progress"]::before { background: #F9F46E; }
+    .inline-picker button[data-dot="closed"]::before      { background: #6DEB5D; }
   </style>
 </head>
 <body>
@@ -1911,11 +2429,14 @@
   <!-- ② TIMELINE BAR ─────────────────────────────────────────────────────── -->
   <div class="timeline-bar">
 
-    <!-- Flight context -->
-    <div class="timeline-bar__flight">
-      <div class="timeline-bar__flight-id">Flight #46309524</div>
+    <!-- Flight context (click to expand full metadata strip) -->
+    <button class="timeline-bar__flight" id="flight-info-toggle" type="button" aria-expanded="false" aria-controls="flight-info-strip">
+      <div class="timeline-bar__flight-id">
+        Flight #46309524
+        <span class="timeline-bar__flight-caret">▾</span>
+      </div>
       <div class="timeline-bar__flight-aircraft" id="flight-aircraft">—</div>
-    </div>
+    </button>
     <div class="timeline-bar__sep"></div>
 
     <!-- Playback -->
@@ -1962,6 +2483,11 @@
     <span class="timeline-bar__time-end" id="t-end">—</span>
     <span class="timeline-bar__duration" id="t-duration">&thinsp;—</span>
 
+  </div>
+
+  <!-- Flight info strip — expand/collapse from the timeline-bar flight name -->
+  <div class="flight-info-strip" id="flight-info-strip" aria-hidden="true">
+    <div class="flight-info-strip__inner" id="flight-info-strip-inner"></div>
   </div>
 
   <!-- ③ WORKSPACE ─────────────────────────────────────────────────────────── -->
@@ -2028,30 +2554,8 @@
 
       <!-- Popovers anchored to the sidebar footer -->
       <div class="sidebar__popover" data-popover-for="layout">
-        <div class="sidebar__popover-title">Layout</div>
-        <div class="layout-options">
-          <button class="layout-option" title="Graphs only">
-            <div class="layout-option__icon">
-              <div class="layout-option__pane is-active" style="flex:1"></div>
-            </div>
-            <span>Full</span>
-          </button>
-          <button class="layout-option is-active" title="Graphs + 3D">
-            <div class="layout-option__icon">
-              <div class="layout-option__pane is-active"></div>
-              <div class="layout-option__pane is-active"></div>
-            </div>
-            <span>Split</span>
-          </button>
-          <button class="layout-option" title="3 panels">
-            <div class="layout-option__icon">
-              <div class="layout-option__pane is-active"></div>
-              <div class="layout-option__pane is-active"></div>
-              <div class="layout-option__pane is-active"></div>
-            </div>
-            <span>3-up</span>
-          </button>
-        </div>
+        <div class="sidebar__popover-title">Visible modules</div>
+        <div class="module-toggles" id="module-toggles"></div>
       </div>
 
       <div class="sidebar__popover" data-popover-for="templates">
@@ -2067,71 +2571,79 @@
     </aside>
 
     <!-- PANELS AREA ──────────────────────────────────────────────────────── -->
-    <div class="panels">
+    <div class="mosaic" id="mosaic">
 
-      <!-- GRAPHS PANEL ─────────────────────────────────────────────────── -->
-      <div class="graphs-panel">
-
-        <!-- Module tab bar -->
-        <div class="panel-tabs" id="module-tabs">
-          <button class="panel-tab is-active" data-mod="graphs">Graphs</button>
-          <button class="panel-tab" data-mod="tabular">Tabular</button>
-          <button class="panel-tab" data-mod="status">Status</button>
-        </div>
-
-
-        <!-- ── Module: Graphs ────────────────────────────────────── -->
-        <div class="panel-content is-active" data-mod="graphs">
-          <div class="graphs-scroll" id="graphs-scroll">
-            <!-- graph cards rendered by JS -->
+      <!-- ── Module: Graphs ──────────────────────────────────────────── -->
+      <section class="module" data-module="graphs">
+        <header class="module__head">
+          <span class="module__title">Graphs</span>
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button>
           </div>
+        </header>
+        <div class="module__body">
+          <div class="graphs-scroll" id="graphs-scroll"></div>
           <button class="graph-drop-zone" id="add-empty-graph" style="margin: 0 8px 8px">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M7 2v10M2 7h10"/>
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg>
             Add a graph
           </button>
-        </div><!-- /panel-content graphs -->
-
-        <!-- ── Module: Tabular ────────────────────────────────────── -->
-        <div class="panel-content" data-mod="tabular">
-          <div class="tabular-scroll">
-            <table class="tabular-table" id="tabular-table"></table>
-          </div>
         </div>
+      </section>
 
-<!-- ── Module: Status ─────────────────────────────────────── -->
-        <div class="panel-content" data-mod="status">
+      <!-- ── Module: Tabular ─────────────────────────────────────────── -->
+      <section class="module" data-module="tabular">
+        <header class="module__head">
+          <span class="module__title">Tabular</span>
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="module__body">
+          <div class="tabular-scroll"><table class="tabular-table" id="tabular-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ── Module: Status ──────────────────────────────────────────── -->
+      <section class="module" data-module="status">
+        <header class="module__head">
+          <span class="module__title">Status</span>
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button>
+          </div>
+        </header>
+        <div class="module__body">
           <div class="status-page" id="status-page"></div>
         </div>
+      </section>
 
-        <!-- legacy mock card kept hidden for the styles to be referenced -->
-      </div><!-- /graphs-panel -->
-
-      <!-- RESIZE HANDLE -->
-      <div class="resize-handle"></div>
-
-      <!-- THIRD PANE — only visible in 3-up layout, holds Tabular ────── -->
-      <div class="third-pane" id="third-pane" style="display:none">
-        <div class="panel-tabs"><div class="panel-tab is-active">Tabular</div></div>
-        <div class="third-pane__content" id="third-pane-content"></div>
-      </div>
-      <div class="resize-handle" id="third-resize" style="display:none"></div>
-
-      <!-- RIGHT PANEL: 3D Visualizer + Map ────────────────────────────── -->
-      <div class="right-panel">
-
-        <div class="right-panel__tabs panel-tabs" id="right-tabs">
-          <div style="display:flex">
-            <button class="panel-tab is-active" data-rpane="3d">3D View</button>
-            <button class="panel-tab" data-rpane="map">Map</button>
-          </div>
-        </div>
-
-        <div class="visualizer-area" id="visualizer-area">
-
-          <!-- 3D Visualizer -->
-          <div class="visualizer-pane" data-rpane="3d">
+      <!-- ── Module: 3D View ──────────────────────────────────────── -->
+      <section class="module" data-module="view3d">
+        <header class="module__head">
+          <span class="module__title">3D View</span>
+          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button></div>
+        </header>
+        <div class="module__body">
+          <div class="visualizer-pane">
             <div class="v-readout">
               <div class="v-readout__row"><span>ALT AAL</span><strong id="v-alt">—</strong></div>
               <div class="v-readout__row"><span>IAS</span><strong id="v-ias">—</strong></div>
@@ -2151,10 +2663,22 @@
               <span class="visualizer-placeholder__label">3D Visualizer · pending WebGL integration</span>
             </div>
           </div>
+        </div>
+      </section>
 
-
-          <!-- Map -->
-          <div class="map-pane" data-rpane="map">
+      <!-- ── Module: Map ──────────────────────────────────────────── -->
+      <section class="module" data-module="map">
+        <header class="module__head">
+          <span class="module__title">Map</span>
+          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button></div>
+        </header>
+        <div class="module__body">
+          <div class="map-pane">
             <svg id="map-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
               <path id="map-track" class="map-track" d=""/>
               <path id="map-track-flown" class="map-track-flown" d=""/>
@@ -2162,128 +2686,131 @@
               <circle id="map-current" class="map-current" cx="0" cy="0" r="4"/>
             </svg>
           </div>
-
         </div>
+      </section>
 
-        <!-- Resize handle between visualizer and instruments -->
-        <div class="resize-handle resize-handle--vertical" id="instruments-resize"></div>
-
-        <!-- Instruments dashboard — always visible below 3D / Map -->
-        <div class="instruments-pane" id="instruments-pane">
-          <div class="panel-tabs" id="instruments-tabs">
-            <button class="panel-tab is-active" data-itab="pfd">Primary Flight Display</button>
-            <button class="panel-tab" data-itab="engines">Engines</button>
-          </div>
-          <div class="instruments-content">
-            <!-- Primary Flight Display -->
-            <div class="pfd is-active" data-itab="pfd">
-              <!-- Speed tape (left column) -->
-              <div class="tape" id="tape-speed">
-                <div class="tape__label">IAS · kt</div>
-                <svg viewBox="0 0 50 200" preserveAspectRatio="none">
-                  <g id="speed-ticks"></g>
-                </svg>
-                <div class="tape__readout tape__readout--left" id="speed-readout">—</div>
-              </div>
-
-              <!-- Attitude indicator (center) -->
-              <div class="attitude" id="attitude">
-                <div class="attitude__sky" id="attitude-sky"></div>
-                <svg class="attitude__pitch-marks" id="pitch-marks" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid meet"></svg>
-                <svg class="attitude__roll-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                  <g fill="none" stroke="#7FA8B8" stroke-width="0.5">
-                    <path d="M 20 50 A 30 30 0 0 1 80 50"/>
-                    <line x1="50" y1="20" x2="50" y2="14"/>
-                    <line x1="35" y1="22.5" x2="33" y2="17"/>
-                    <line x1="65" y1="22.5" x2="67" y2="17"/>
-                    <line x1="20" y1="35" x2="14" y2="32"/>
-                    <line x1="80" y1="35" x2="86" y2="32"/>
-                  </g>
-                </svg>
-                <div class="attitude__roll-pointer"></div>
-                <div class="attitude__crosshair"></div>
-              </div>
-
-              <!-- Altitude tape (right) -->
-              <div class="tape" id="tape-alt">
-                <div class="tape__label">ALT · ft</div>
-                <svg viewBox="0 0 50 200" preserveAspectRatio="none">
-                  <g id="alt-ticks"></g>
-                </svg>
-                <div class="tape__readout tape__readout--right" id="alt-readout">—</div>
-              </div>
-
-              <!-- VSI gauge (far right) -->
-              <div class="vsi-gauge" id="vsi-gauge">
-                <svg viewBox="0 0 30 200" preserveAspectRatio="none">
-                  <g fill="none" stroke="#3A6478" stroke-width="0.4" font-family="monospace" font-size="6">
-                    <line x1="0" y1="100" x2="30" y2="100" stroke="#074058" stroke-width="0.6"/>
-                    <line x1="20" y1="33"  x2="30" y2="33"/><text x="2" y="35" fill="#7FA8B8">2</text>
-                    <line x1="20" y1="66"  x2="30" y2="66"/><text x="2" y="68" fill="#7FA8B8">1</text>
-                    <line x1="20" y1="133" x2="30" y2="133"/><text x="2" y="136" fill="#7FA8B8">1</text>
-                    <line x1="20" y1="166" x2="30" y2="166"/><text x="2" y="169" fill="#7FA8B8">2</text>
-                  </g>
-                  <line id="vsi-needle" x1="0" y1="100" x2="30" y2="100" stroke="#28C8B9" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <div class="tape__label tape__label--bottom">VSI · k·fpm</div>
-              </div>
-
-              <!-- Heading strip (bottom, full width) -->
-              <div class="heading-strip" id="heading-strip">
-                <svg viewBox="0 0 600 44" preserveAspectRatio="none">
-                  <g id="heading-ticks"></g>
-                </svg>
-                <div class="heading-strip__caret"></div>
-                <div class="heading-strip__readout" id="heading-readout">—</div>
-              </div>
+      <!-- ── Module: Primary Flight Display ───────────────────────── -->
+      <section class="module" data-module="pfd">
+        <header class="module__head">
+          <span class="module__title">Primary Flight Display</span>
+          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button></div>
+        </header>
+        <div class="module__body">
+          <div class="pfd is-active">
+            <div class="tape" id="tape-speed">
+              <div class="tape__label">IAS · kt</div>
+              <svg viewBox="0 0 50 200" preserveAspectRatio="none"><g id="speed-ticks"></g></svg>
+              <div class="tape__readout tape__readout--left" id="speed-readout">—</div>
             </div>
+            <div class="attitude" id="attitude">
+              <div class="attitude__sky" id="attitude-sky"></div>
+              <svg class="attitude__pitch-marks" id="pitch-marks" viewBox="-50 -50 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+              <svg class="attitude__roll-arc" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                <g fill="none" stroke="#7FA8B8" stroke-width="0.5">
+                  <path d="M 20 50 A 30 30 0 0 1 80 50"/>
+                  <line x1="50" y1="20" x2="50" y2="14"/>
+                  <line x1="35" y1="22.5" x2="33" y2="17"/>
+                  <line x1="65" y1="22.5" x2="67" y2="17"/>
+                  <line x1="20" y1="35" x2="14" y2="32"/>
+                  <line x1="80" y1="35" x2="86" y2="32"/>
+                </g>
+              </svg>
+              <div class="attitude__roll-pointer"></div>
+              <div class="attitude__crosshair"></div>
+            </div>
+            <div class="tape" id="tape-alt">
+              <div class="tape__label">ALT · ft</div>
+              <svg viewBox="0 0 50 200" preserveAspectRatio="none"><g id="alt-ticks"></g></svg>
+              <div class="tape__readout tape__readout--right" id="alt-readout">—</div>
+            </div>
+            <div class="vsi-gauge" id="vsi-gauge">
+              <svg viewBox="0 0 30 200" preserveAspectRatio="none">
+                <g fill="none" stroke="#3A6478" stroke-width="0.4" font-family="monospace" font-size="6">
+                  <line x1="0" y1="100" x2="30" y2="100" stroke="#074058" stroke-width="0.6"/>
+                  <line x1="20" y1="33"  x2="30" y2="33"/><text x="2" y="35" fill="#7FA8B8">2</text>
+                  <line x1="20" y1="66"  x2="30" y2="66"/><text x="2" y="68" fill="#7FA8B8">1</text>
+                  <line x1="20" y1="133" x2="30" y2="133"/><text x="2" y="136" fill="#7FA8B8">1</text>
+                  <line x1="20" y1="166" x2="30" y2="166"/><text x="2" y="169" fill="#7FA8B8">2</text>
+                </g>
+                <line id="vsi-needle" x1="0" y1="100" x2="30" y2="100" stroke="#28C8B9" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <div class="tape__label tape__label--bottom">VSI · k·fpm</div>
+            </div>
+            <div class="heading-strip" id="heading-strip">
+              <svg viewBox="0 0 600 44" preserveAspectRatio="none"><g id="heading-ticks"></g></svg>
+              <div class="heading-strip__caret"></div>
+              <div class="heading-strip__readout" id="heading-readout">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-            <!-- Engines panel -->
-            <div class="engines" data-itab="engines">
-              <div class="engines__col-headers">
-                <div></div><div>Eng 1</div><div>Eng 2</div>
+      <!-- ── Module: Engines ─────────────────────────────────────── -->
+      <section class="module" data-module="engines">
+        <header class="module__head">
+          <span class="module__title">Engines</span>
+          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button></div>
+        </header>
+        <div class="module__body">
+          <div class="engines">
+            <div class="engines__col-headers">
+              <div></div><div>Eng 1</div><div>Eng 2</div>
+            </div>
+            <div class="engine-row">
+              <div class="engine-row__label">TRQ</div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng1Torque">—</span></div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng2Torque">—</span></div>
+            </div>
+            <div class="engine-row">
+              <div class="engine-row__label">N1</div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng1N1">—</span></div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng2N1">—</span></div>
+            </div>
+            <div class="engine-row">
+              <div class="engine-row__label">EGT</div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp1" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp1">—</span></div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp2" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp2">—</span></div>
+            </div>
+            <div class="engine-row engine-row--single">
+              <div class="engine-row__label">COL</div>
+              <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="collective" data-min="0" data-max="100"></div><span class="engine-bar__value" data-bar-value-for="collective">—</span></div>
+            </div>
+            <div class="engine-digital">
+              <div class="engine-digital__cell">
+                <div class="engine-digital__label">Groundspeed</div>
+                <div class="engine-digital__value" id="dig-gs">—</div>
               </div>
-              <div class="engine-row">
-                <div class="engine-row__label">TRQ</div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng1Torque">—</span></div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2Torque" data-min="0" data-max="120"></div><span class="engine-bar__value" data-bar-value-for="eng2Torque">—</span></div>
-              </div>
-              <div class="engine-row">
-                <div class="engine-row__label">N1</div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng1N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng1N1">—</span></div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="eng2N1" data-min="0" data-max="110"></div><span class="engine-bar__value" data-bar-value-for="eng2N1">—</span></div>
-              </div>
-              <div class="engine-row">
-                <div class="engine-row__label">EGT</div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp1" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp1">—</span></div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="gasTemp2" data-min="0" data-max="900"></div><span class="engine-bar__value" data-bar-value-for="gasTemp2">—</span></div>
-              </div>
-              <div class="engine-row engine-row--single">
-                <div class="engine-row__label">COL</div>
-                <div class="engine-bar"><div class="engine-bar__fill" data-bar-for="collective" data-min="0" data-max="100"></div><span class="engine-bar__value" data-bar-value-for="collective">—</span></div>
-              </div>
-
-              <div class="engine-digital">
-                <div class="engine-digital__cell">
-                  <div class="engine-digital__label">Groundspeed</div>
-                  <div class="engine-digital__value" id="dig-gs">—</div>
-                </div>
-                <div class="engine-digital__cell">
-                  <div class="engine-digital__label">Phase</div>
-                  <div class="engine-digital__value" id="dig-phase">—</div>
-                </div>
+              <div class="engine-digital__cell">
+                <div class="engine-digital__label">Phase</div>
+                <div class="engine-digital__value" id="dig-phase">—</div>
               </div>
             </div>
           </div>
         </div>
+      </section>
 
-      </div><!-- /right-panel -->
-
-    </div><!-- /panels -->
+    </div><!-- /mosaic -->
 
   </div><!-- /workspace -->
 
 </div><!-- /app -->
+
+<!-- ════ Event interaction layers ═══════════════════════════════════════════
+     Pin click → lightweight popover anchored to the pin.
+     "Open full detail" inside the popover OR a Status table row → drawer. -->
+<div class="event-popover" id="event-popover" aria-hidden="true"></div>
+<div class="event-drawer-backdrop" id="event-drawer-backdrop"></div>
+<aside class="event-drawer" id="event-drawer" aria-hidden="true"></aside>
 
 <script>
 /* ──────────────────────────────────────────────────────────────────────────
@@ -2298,6 +2825,10 @@ const FLIGHT = {
   durationSec: 39*60 + 23,
   origin: "Aberdeen (EGPD)",
   destination: "ETAP-1 Platform",
+  operator: "Bristow Helicopters",
+  flightType: "Complete",
+  takeoffDate: "2024-12-14",
+  landingDate: "2024-12-14",
   samples: 240,
   phases: [
     { name: "Engine Start", startPct: 0.00, endPct: 0.04 },
@@ -2311,12 +2842,39 @@ const FLIGHT = {
     { name: "Taxi In",      startPct: 0.96, endPct: 1.00 },
   ],
   events: [
-    { id:1, level:3, name:"Rate of Descent High 500-100ft", code:"RoD hi 500-100ft", pct:0.18, value:"-1850 fpm",  threshold:"-1500 fpm", phase:"Climb" },
-    { id:2, level:2, name:"Roll Attitude High >300ft",      code:"Roll hi >300ft",   pct:0.31, value:"24.6°",       threshold:"20°",         phase:"Cruise" },
-    { id:3, level:1, name:"Pitch Attitude Low <20ft",       code:"Pitch lo <20ft",   pct:0.47, value:"-2.8°",       threshold:"-2°",         phase:"Cruise" },
-    { id:4, level:3, name:"Rate of Descent High 1000-500ft",code:"RoD hi 1000-500ft",pct:0.62, value:"-2820 fpm",  threshold:"-2200 fpm", phase:"Descent" },
-    { id:5, level:2, name:"Airspeed High VMO",              code:"Airspeed hi VMO",  pct:0.78, value:"168 kt",      threshold:"165 kt",     phase:"Descent" },
-    { id:6, level:1, name:"IAS High at 50ft",               code:"IAS hi 50ft",      pct:0.93, value:"62 kt",       threshold:"55 kt",       phase:"Approach" },
+    { id:38806449, level:3, name:"Rate of Descent High 500-100ft", code:"RoD hi 500-100ft", reference:"FRA006", pct:0.18, value:"-1850 fpm",  threshold:"-1500 fpm", phase:"Climb",
+      description:"Descent rate exceeded threshold during initial climb-out segment between 500 and 100ft AAL.",
+      status:"open", validity:"auto", statusBy:"—", validityBy:"—",
+      comments:[
+        {author:"Jane Doe",  ago:"6 hours ago", text:"Wind shear reported at the platform — likely external factor. Worth cross-checking with met data."},
+        {author:"John Doe",  ago:"6 hours ago", text:"Talked to pilot, confirmed manual correction."},
+      ]
+    },
+    { id:38806450, level:2, name:"Roll Attitude High >300ft",      code:"Roll hi >300ft",   reference:"FRA011", pct:0.31, value:"24.6°", threshold:"20°", phase:"Cruise",
+      description:"Roll attitude exceeded 20° above 300ft AAL.",
+      status:"in_progress", validity:"auto", statusBy:"John Doe", validityBy:"—",
+      comments:[{author:"John Doe", ago:"2 hours ago", text:"Course correction around obstacle on track — need to verify with route plan."}]
+    },
+    { id:38806451, level:1, name:"Pitch Attitude Low <20ft",       code:"Pitch lo <20ft",   reference:"FRA023", pct:0.47, value:"-2.8°", threshold:"-2°", phase:"Cruise",
+      description:"Pitch attitude dropped below -2° while below 20ft AAL.",
+      status:"closed", validity:"manual", statusBy:"Jane Doe", validityBy:"Jane Doe",
+      comments:[{author:"Jane Doe", ago:"1 day ago", text:"Validated — sensor noise during taxi, not flight-relevant."}]
+    },
+    { id:38806452, level:3, name:"Rate of Descent High 1000-500ft",code:"RoD hi 1000-500ft",reference:"FRA005", pct:0.62, value:"-2820 fpm", threshold:"-2200 fpm", phase:"Descent",
+      description:"Aggressive descent rate detected between 1000 and 500ft AAL.",
+      status:"open", validity:"auto", statusBy:"—", validityBy:"—",
+      comments:[]
+    },
+    { id:38806453, level:2, name:"Airspeed High VMO",              code:"Airspeed hi VMO",  reference:"FRA019", pct:0.78, value:"168 kt", threshold:"165 kt", phase:"Descent",
+      description:"Indicated airspeed momentarily exceeded the VMO limit by 3 kt.",
+      status:"open", validity:"auto", statusBy:"—", validityBy:"—",
+      comments:[]
+    },
+    { id:38806454, level:1, name:"IAS High at 50ft",               code:"IAS hi 50ft",      reference:"FRA017", pct:0.93, value:"62 kt", threshold:"55 kt", phase:"Approach",
+      description:"Indicated airspeed above target at the 50ft callout point.",
+      status:"in_progress", validity:"auto", statusBy:"Jane Doe", validityBy:"—",
+      comments:[]
+    },
   ],
   approaches: [
     { id:1, runway:"ETAP-1 Helideck", type:"Visual", glideslope:"3.2°", touchdownPct:0.94 },
@@ -2411,6 +2969,7 @@ const STATE = {
   speed: 1,
   rightPane: "3d",
   module: "graphs",
+  activeEventId: null, // event whose detail drawer is open (or null)
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -2436,6 +2995,35 @@ function renderTimeline() {
 
   const track = $("#track");
   const head = $("#track-head");
+
+  // Altitude profile — drawn behind everything else so it acts as visual
+  // context: at-a-glance shape of the flight, helicopter vs jet, where the
+  // climb / cruise / descent / approach phases sit.
+  const altSeries = PARAMETERS.altAal?.series;
+  if (altSeries && altSeries.length) {
+    const W = 1000, H = 32, pad = 4;
+    const yMax = Math.max(...altSeries), yMin = Math.min(...altSeries);
+    const span = (yMax - yMin) || 1;
+    let d = "";
+    altSeries.forEach((v, i) => {
+      const x = (i / (altSeries.length - 1)) * W;
+      const y = (H - 1) - ((v - yMin) / span) * (H - pad - 1);
+      d += (i === 0 ? `M${x.toFixed(1)},${y.toFixed(1)}` : ` L${x.toFixed(1)},${y.toFixed(1)}`);
+    });
+    d += ` L${W},${H} L0,${H} Z`;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "timeline-bar__altitude");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "rgba(40,200,185,0.10)");
+    path.setAttribute("stroke", "rgba(40,200,185,0.45)");
+    path.setAttribute("stroke-width", "0.8");
+    svg.appendChild(path);
+    track.insertBefore(svg, track.firstChild);
+  }
+
   // ticks
   for (let i=0;i<=8;i++) {
     const t = el("div", "timeline-bar__tick " + (i%2===0?"major":"minor"));
@@ -2448,6 +3036,7 @@ function renderTimeline() {
     const fill = ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D";
     const m = el("div", "event-marker");
     m.dataset.level = ev.level;
+    m.dataset.eventId = ev.id;
     m.style.left = (ev.pct*100) + "%";
     m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
     m.innerHTML = `
@@ -2455,7 +3044,7 @@ function renderTimeline() {
         <path d="M7 23.5 L1.5 11 A5.5 5.5 0 1 1 12.5 11 Z" fill="${fill}" stroke="#021C25" stroke-width="0.8"/>
         <circle cx="7" cy="8" r="2.2" fill="#021C25"/>
       </svg>`;
-    m.addEventListener("click", e => { e.stopPropagation(); seekTo(ev.pct); });
+    m.addEventListener("click", e => { e.stopPropagation(); openEventPopover(ev.id, m); });
     track.insertBefore(m, head);
   });
 }
@@ -2474,7 +3063,13 @@ function renderFinder() {
       label: ev.code,
       meta:  pctToTime(ev.pct),
       color: ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D",
-      onClick: () => seekTo(ev.pct),
+      // Sidebar list → use the popover anchored to the corresponding pin
+      // (gives the user a visible spatial response in the timeline)
+      onClick: () => {
+        const pin = document.querySelector(`.event-marker[data-event-id="${ev.id}"]`);
+        if (pin) openEventPopover(ev.id, pin);
+        else seekTo(ev.pct);
+      },
     })), "Event"));
   }
   if (filters.has("Parm")) {
@@ -2920,7 +3515,7 @@ function renderGraphs() {
       const line = el("div", "graph-event-line level-" + ev.level);
       line.style.left = (ev.pct*100) + "%";
       line.title = `${ev.code} · ${pctToTime(ev.pct)}`;
-      line.addEventListener("click", () => seekTo(ev.pct));
+      line.addEventListener("click", e => { e.stopPropagation(); openEventPopover(ev.id, line); });
       plotArea.appendChild(line);
     });
 
@@ -2998,36 +3593,15 @@ function renderStatus() {
   const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
 
   root.innerHTML = `
-    <!-- Hero: severity verdict -->
+    <!-- Hero: severity verdict — Status owns judgment, not identification.
+         Flight ID, aircraft, route and duration live in the slide-down strip
+         above the workspace. -->
     <section class="status-hero status-hero--level-${top}">
-      <div class="status-hero__main">
-        <div class="status-hero__verdict">${verdict}</div>
-        <div class="status-hero__counts">
-          <span class="status-count level-3"><b>${counts[3]}</b> · L3</span>
-          <span class="status-count level-2"><b>${counts[2]}</b> · L2</span>
-          <span class="status-count level-1"><b>${counts[1]}</b> · L1</span>
-        </div>
-      </div>
-      <div class="status-hero__id">
-        <div class="status-hero__id-flight">Flight #${FLIGHT.id}</div>
-        <div class="status-hero__id-aircraft">${FLIGHT.aircraft}</div>
-      </div>
-    </section>
-
-    <!-- Route + duration: secondary facts -->
-    <section class="status-route">
-      <div class="status-route__leg">
-        <span class="status-route__label">From</span>
-        <span class="status-route__place">${FLIGHT.origin}</span>
-      </div>
-      <div class="status-route__arrow">→</div>
-      <div class="status-route__leg">
-        <span class="status-route__label">To</span>
-        <span class="status-route__place">${FLIGHT.destination}</span>
-      </div>
-      <div class="status-route__leg status-route__leg--right">
-        <span class="status-route__label">Duration</span>
-        <span class="status-route__place">${m}:${String(s).padStart(2,"0")}</span>
+      <div class="status-hero__verdict">${verdict}</div>
+      <div class="status-hero__counts">
+        <span class="status-count level-3"><b>${counts[3]}</b> · L3</span>
+        <span class="status-count level-2"><b>${counts[2]}</b> · L2</span>
+        <span class="status-count level-1"><b>${counts[1]}</b> · L1</span>
       </div>
     </section>
 
@@ -3071,8 +3645,11 @@ function renderStatus() {
       </section>` : ""}
   `;
 
-  // Click row → seek
-  $$("[data-status-event], [data-status-approach]", root).forEach(r => {
+  // Click an event row → open the detail drawer; approach → just seek
+  $$("[data-status-event]", root).forEach(r => {
+    r.addEventListener("click", () => openEventDrawer(parseInt(r.dataset.statusEvent, 10)));
+  });
+  $$("[data-status-approach]", root).forEach(r => {
     r.addEventListener("click", () => seekTo(parseFloat(r.dataset.pct)));
   });
 }
@@ -3363,23 +3940,460 @@ function setupPlayback() {
   paint();
 }
 
-function setupModuleTabs() {
-  $$("#module-tabs .panel-tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      $$("#module-tabs .panel-tab").forEach(t => t.classList.remove("is-active"));
-      tab.classList.add("is-active");
-      const mod = tab.dataset.mod;
-      STATE.module = mod;
-      $$(".panel-content").forEach(c => c.classList.toggle("is-active", c.dataset.mod === mod));
+/* ──────────────────────────────────────────────────────────────────────────
+   MOSAIC LAYOUT — replaces the tab+split system with a customisable grid
+   ────────────────────────────────────────────────────────────────────────── */
+
+const MODULES = {
+  graphs:  { title: "Graphs" },
+  tabular: { title: "Tabular" },
+  status:  { title: "Status" },
+  view3d:  { title: "3D View" },
+  map:     { title: "Map" },
+  pfd:     { title: "Primary Flight Display" },
+  engines: { title: "Engines" },
+};
+
+/* Layout is a nested-split tree. Each node is either:
+   - { type: 'leaf', module: '<key>' }
+   - { type: 'split', dir: 'h'|'v', weights: [...], children: [Node,...] }
+   Resizing a divider only affects the two children on either side.
+   Hiding a module removes its leaf; if the parent split is left with one
+   child, the parent collapses (child takes its slot). New modules append
+   to the root split. */
+function makeDefaultTree() {
+  return {
+    type:'split', dir:'h', weights:[60, 40],
+    children:[
+      { type:'split', dir:'v', weights:[65, 35], children:[
+        { type:'leaf', module:'graphs' },
+        { type:'leaf', module:'tabular' },
+      ]},
+      { type:'split', dir:'v', weights:[33, 33, 33], children:[
+        { type:'split', dir:'h', weights:[50, 50], children:[
+          { type:'leaf', module:'status' },
+          { type:'leaf', module:'view3d' },
+        ]},
+        { type:'split', dir:'h', weights:[50, 50], children:[
+          { type:'leaf', module:'pfd' },
+          { type:'leaf', module:'engines' },
+        ]},
+        { type:'leaf', module:'map' },
+      ]},
+    ]
+  };
+}
+
+const BUILTIN_TEMPLATES = {
+  "Default analyst layout": makeDefaultTree(),
+  "Approach review": {
+    type:'split', dir:'h', weights:[60, 40], children:[
+      { type:'leaf', module:'graphs' },
+      { type:'split', dir:'v', weights:[50, 50], children:[
+        { type:'leaf', module:'status' },
+        { type:'leaf', module:'view3d' },
+      ]},
+    ]
+  },
+  "Engine investigation": {
+    type:'split', dir:'v', weights:[55, 45], children:[
+      { type:'split', dir:'h', weights:[60, 40], children:[
+        { type:'leaf', module:'graphs' },
+        { type:'split', dir:'v', weights:[50, 50], children:[
+          { type:'leaf', module:'pfd' },
+          { type:'leaf', module:'engines' },
+        ]},
+      ]},
+      { type:'leaf', module:'tabular' },
+    ]
+  },
+};
+
+let LAYOUT = JSON.parse(JSON.stringify(BUILTIN_TEMPLATES["Default analyst layout"]));
+let SAVED_LAYOUTS = {}; // user templates: {name: snapshot}
+
+/* ── Tree utilities ─────────────────────────────────────────────────────── */
+function listLeafModules(node, out = []) {
+  if (!node) return out;
+  if (node.type === 'leaf') out.push(node.module);
+  else node.children.forEach(c => listLeafModules(c, out));
+  return out;
+}
+
+function findLeafInTree(tree, moduleKey) {
+  function walk(node, parent, idx) {
+    if (node.type === 'leaf') return node.module === moduleKey ? { node, parent, idx } : null;
+    for (let i = 0; i < node.children.length; i++) {
+      const r = walk(node.children[i], node, i);
+      if (r) return r;
+    }
+    return null;
+  }
+  return walk(tree, null, -1);
+}
+
+function collapseSingletonSplits(node) {
+  if (!node || node.type !== 'split') return node;
+  node.children = node.children.map(collapseSingletonSplits);
+  // If any child is a single-child split, replace it with its only child
+  node.children = node.children.map(c => (c.type === 'split' && c.children.length === 1) ? c.children[0] : c);
+  return node;
+}
+
+function removeModuleFromTree(moduleKey) {
+  const found = findLeafInTree(LAYOUT, moduleKey);
+  if (!found || !found.parent) return; // can't remove the root by itself
+  const p = found.parent;
+  p.children.splice(found.idx, 1);
+  p.weights.splice(found.idx, 1);
+  const total = p.weights.reduce((a,b) => a+b, 0) || 1;
+  p.weights = p.weights.map(w => (w / total) * 100);
+  LAYOUT = collapseSingletonSplits(LAYOUT);
+  // If LAYOUT itself collapsed to a leaf with no parent reference, ok
+}
+
+function addModuleToTree(moduleKey) {
+  const newLeaf = { type:'leaf', module: moduleKey };
+  // Append to root: if root is a split, push as a new child; if a leaf, promote.
+  if (LAYOUT.type === 'leaf') {
+    LAYOUT = { type:'split', dir:'h', weights:[60, 40], children:[LAYOUT, newLeaf] };
+  } else {
+    LAYOUT.children.push(newLeaf);
+    const equal = 100 / LAYOUT.children.length;
+    LAYOUT.weights = LAYOUT.children.map(() => equal);
+  }
+}
+
+function swapModulesInTree(a, b) {
+  const la = findLeafInTree(LAYOUT, a)?.node;
+  const lb = findLeafInTree(LAYOUT, b)?.node;
+  if (!la || !lb) return;
+  const tmp = la.module; la.module = lb.module; lb.module = tmp;
+}
+
+function getVisibleModules() { return listLeafModules(LAYOUT); }
+
+/* Render the split tree as nested flex containers. The 7 <section class="module">
+   elements are static in HTML — we move them around the tree on each render. */
+function applyMosaic() {
+  const mosaic = $("#mosaic");
+  if (!mosaic) return;
+
+  // Move all modules to a hidden pool so we can safely empty the mosaic
+  let pool = document.getElementById("__module-pool");
+  if (!pool) {
+    pool = document.createElement("div");
+    pool.id = "__module-pool";
+    pool.style.display = "none";
+    document.body.appendChild(pool);
+  }
+  document.querySelectorAll(".module").forEach(m => {
+    m.style.display = "none";
+    pool.appendChild(m);
+  });
+  mosaic.innerHTML = "";
+
+  const visibleCount = listLeafModules(LAYOUT).length;
+  mosaic.classList.toggle("mosaic--empty", visibleCount === 0);
+  if (visibleCount > 0) renderTreeNode(LAYOUT, mosaic);
+
+  renderModuleToggles();
+}
+
+function renderTreeNode(node, container) {
+  if (node.type === 'leaf') {
+    const el = document.querySelector(`#__module-pool .module[data-module="${node.module}"]`)
+            || document.querySelector(`.module[data-module="${node.module}"]`);
+    if (el) {
+      el.style.display = "";
+      el.style.flex = "";  // managed by the parent pane wrapper
+      container.appendChild(el);
+    }
+    return;
+  }
+  // split
+  const splitEl = document.createElement("div");
+  splitEl.className = "mosaic-split mosaic-split--" + node.dir;
+
+  node.children.forEach((child, i) => {
+    if (i > 0) {
+      const divider = document.createElement("div");
+      divider.className = "mosaic-divider mosaic-divider--" + node.dir;
+      divider.dataset.idx = i - 1;
+      divider._splitNode = node;
+      splitEl.appendChild(divider);
+    }
+    const pane = document.createElement("div");
+    pane.className = "mosaic-pane";
+    pane.style.flex = `${node.weights[i]} ${node.weights[i]} 0`;
+    renderTreeNode(child, pane);
+    splitEl.appendChild(pane);
+  });
+
+  container.appendChild(splitEl);
+}
+
+function renderModuleToggles() {
+  const root = $("#module-toggles");
+  if (!root) return;
+  const visible = new Set(getVisibleModules());
+  root.innerHTML = Object.entries(MODULES).map(([key, m]) => {
+    const on = visible.has(key);
+    return `<button class="module-toggle${on?" is-on":""}" data-toggle-module="${key}">
+      <span class="module-toggle__check"></span>
+      <span class="module-toggle__label">${m.title}</span>
+    </button>`;
+  }).join("");
+  root.querySelectorAll("[data-toggle-module]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      toggleModuleVisibility(btn.dataset.toggleModule);
     });
   });
 }
 
-function setupRightTabs() {
+function toggleModuleVisibility(key) {
+  if (getVisibleModules().includes(key)) removeModuleFromTree(key);
+  else addModuleToTree(key);
+  applyMosaic();
+}
+
+// Hide button (×) on each module header — uses delegated click since modules
+// move around the tree on each render
+function setupModuleHideButtons() {
+  document.addEventListener("click", e => {
+    const btn = e.target.closest("[data-module-hide]");
+    if (!btn) return;
+    e.stopPropagation();
+    const moduleEl = btn.closest(".module");
+    if (moduleEl) toggleModuleVisibility(moduleEl.dataset.module);
+  });
+}
+
+// Legacy grid-based resize logic — superseded by divider drag in the tree.
+function _legacy_findResizeHandles() {
+  const handles = [];
+  const seen = new Set();
+  for (const m of LAYOUT.visible) {
+    const A = LAYOUT.placement[m];
+    if (!A) continue;
+    for (const n of LAYOUT.visible) {
+      if (n === m) continue;
+      const B = LAYOUT.placement[n];
+      if (!B) continue;
+      // Vertical edge: A on left, B on right
+      if (B.col === A.col + A.colSpan) {
+        const rowStart = Math.max(A.row, B.row);
+        const rowEnd   = Math.min(A.row + A.rowSpan, B.row + B.rowSpan);
+        if (rowStart < rowEnd) {
+          const key = `col:${A.col + A.colSpan}:${rowStart}:${rowEnd}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            handles.push({
+              kind: "col",
+              leftIdx:  A.col + A.colSpan - 2,
+              rightIdx: A.col + A.colSpan - 1,
+              rowStart, rowEnd,
+            });
+          }
+        }
+      }
+      // Horizontal edge: A on top, B on bottom
+      if (B.row === A.row + A.rowSpan) {
+        const colStart = Math.max(A.col, B.col);
+        const colEnd   = Math.min(A.col + A.colSpan, B.col + B.colSpan);
+        if (colStart < colEnd) {
+          const key = `row:${A.row + A.rowSpan}:${colStart}:${colEnd}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            handles.push({
+              kind: "row",
+              topIdx:    A.row + A.rowSpan - 2,
+              bottomIdx: A.row + A.rowSpan - 1,
+              colStart, colEnd,
+            });
+          }
+        }
+      }
+    }
+  }
+  return handles;
+}
+
+// Legacy grid-based code — kept inert for safety
+function renderMosaicResizeHandles() {}
+
+function _legacy_positionMosaicResizeHandles() {
+  const mosaic = $("#mosaic");
+  if (!mosaic) return;
+  const cs = getComputedStyle(mosaic);
+  const cols = cs.gridTemplateColumns.split(" ").map(parseFloat);
+  const rows = cs.gridTemplateRows.split(" ").map(parseFloat);
+  const GAP = 1;
+  const sum = (arr, from, to) => {
+    let s = 0;
+    for (let i = from; i < to; i++) s += arr[i] + (i < to - 1 ? GAP : 0);
+    return s;
+  };
+  mosaic.querySelectorAll(".mosaic-resize").forEach(handle => {
+    const info = JSON.parse(handle.dataset.info);
+    if (info.kind === "col") {
+      // X position at the boundary between leftIdx and rightIdx
+      const x = sum(cols, 0, info.rightIdx) + GAP;
+      const y = sum(rows, 0, info.rowStart - 1) + (info.rowStart > 1 ? GAP : 0);
+      const h = sum(rows, info.rowStart - 1, info.rowEnd - 1);
+      handle.style.left = (x - 3) + "px";
+      handle.style.top  = y + "px";
+      handle.style.width  = "6px";
+      handle.style.height = h + "px";
+    } else {
+      const y = sum(rows, 0, info.bottomIdx) + GAP;
+      const x = sum(cols, 0, info.colStart - 1) + (info.colStart > 1 ? GAP : 0);
+      const w = sum(cols, info.colStart - 1, info.colEnd - 1);
+      handle.style.top  = (y - 3) + "px";
+      handle.style.left = x + "px";
+      handle.style.height = "6px";
+      handle.style.width  = w + "px";
+    }
+  });
+}
+
+function setupMosaicResize() {
+  // Delegated handler: each divider stores its split node + child index.
+  // Dragging adjusts that split's two adjacent weights ONLY — siblings
+  // outside this split are not affected.
+  document.addEventListener("mousedown", e => {
+    const divider = e.target.closest(".mosaic-divider");
+    if (!divider) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const splitNode = divider._splitNode;
+    const idx = +divider.dataset.idx;
+    const isHorizontal = splitNode.dir === 'h'; // h = children side-by-side
+    const startPos = isHorizontal ? e.clientX : e.clientY;
+    const splitEl = divider.parentElement;
+    const splitRect = splitEl.getBoundingClientRect();
+    const total = isHorizontal ? splitRect.width : splitRect.height;
+
+    const startA = splitNode.weights[idx];
+    const startB = splitNode.weights[idx + 1];
+    const startSum = startA + startB;
+
+    divider.classList.add("is-active");
+    document.body.style.cursor = isHorizontal ? "col-resize" : "row-resize";
+    document.body.style.userSelect = "none";
+
+    function onMove(ev) {
+      const delta = (isHorizontal ? ev.clientX : ev.clientY) - startPos;
+      const deltaPct = (delta / total) * startSum;
+      const MIN = 5;
+      const newA = Math.max(MIN, Math.min(startSum - MIN, startA + deltaPct));
+      const newB = startSum - newA;
+      splitNode.weights[idx] = newA;
+      splitNode.weights[idx + 1] = newB;
+      // Update only the two adjacent panes' flex values — no global reflow
+      const panes = Array.from(splitEl.children).filter(c => c.classList.contains("mosaic-pane"));
+      [idx, idx + 1].forEach(i => {
+        if (panes[i]) panes[i].style.flex = `${splitNode.weights[i]} ${splitNode.weights[i]} 0`;
+      });
+    }
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      divider.classList.remove("is-active");
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
+
+function setupMosaicReorder() {
+  // Delegated drag — modules move between tree nodes on every render, so we
+  // can't bind to individual handle elements (they'd be stale).
+  document.addEventListener("mousedown", e => {
+    const handle = e.target.closest("[data-module-drag]");
+    if (!handle) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const sourceModule = handle.closest(".module");
+    if (!sourceModule) return;
+    const sourceKey = sourceModule.dataset.module;
+    let targetKey = null;
+    sourceModule.classList.add("is-dragging");
+    document.body.style.cursor = "grabbing";
+    document.body.style.userSelect = "none";
+
+    function onMove(ev) {
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const m = el && el.closest && el.closest(".module");
+      document.querySelectorAll(".module").forEach(x => x.classList.remove("is-drag-target"));
+      if (m && m.dataset.module !== sourceKey && getVisibleModules().includes(m.dataset.module)) {
+        m.classList.add("is-drag-target");
+        targetKey = m.dataset.module;
+      } else {
+        targetKey = null;
+      }
+    }
+    function onUp() {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.querySelectorAll(".module").forEach(x => {
+        x.classList.remove("is-drag-target");
+        x.classList.remove("is-dragging");
+      });
+      if (targetKey && targetKey !== sourceKey) {
+        swapModulesInTree(sourceKey, targetKey);
+        applyMosaic();
+      }
+    }
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
+
+/* — Templates ───────────────────────────────────────────────────────────── */
+function renderTemplatesList() {
+  const wrap = document.querySelector('.sidebar__popover[data-popover-for="templates"] .template-list');
+  if (!wrap) return;
+  const builtin = Object.keys(BUILTIN_TEMPLATES);
+  const user = Object.keys(SAVED_LAYOUTS);
+  wrap.innerHTML =
+    builtin.map(name => `<button class="template-item" data-load-template="${name}"><span>${name}</span><em>built-in</em></button>`).join("") +
+    user.map(name => `<button class="template-item" data-load-template="${name}" data-user="1"><span>${name}</span><em>saved</em></button>`).join("") +
+    `<button class="template-item template-item--add" data-save-template>+ Save current as template…</button>`;
+  wrap.querySelectorAll("[data-load-template]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.loadTemplate;
+      const snap = btn.dataset.user ? SAVED_LAYOUTS[name] : BUILTIN_TEMPLATES[name];
+      if (!snap) return;
+      // Replace the whole tree (not Object.assign — we're swapping the root)
+      LAYOUT = JSON.parse(JSON.stringify(snap));
+      applyMosaic();
+    });
+  });
+  wrap.querySelector("[data-save-template]").addEventListener("click", () => {
+    const name = prompt("Template name:");
+    if (!name) return;
+    SAVED_LAYOUTS[name] = JSON.parse(JSON.stringify(LAYOUT));
+    renderTemplatesList();
+  });
+}
+
+// Module tabs removed in mosaic refactor — kept as a no-op so boot doesn't break.
+function setupModuleTabs() {}
+
+// No-ops — 3D and Map are now separate modules in the mosaic (no more sub-tabs).
+function setupRightTabs() {}
+function _legacy_setupRightTabs() {
   const va = $("#visualizer-area");
-  $$("#right-tabs .panel-tab").forEach(tab => {
+  $$("#right-tabs .module__tab").forEach(tab => {
     tab.addEventListener("click", () => {
-      $$("#right-tabs .panel-tab").forEach(t => t.classList.remove("is-active"));
+      $$("#right-tabs .module__tab").forEach(t => t.classList.remove("is-active"));
       tab.classList.add("is-active");
       const p = tab.dataset.rpane;
       STATE.rightPane = p;
@@ -3392,47 +4406,12 @@ function setupRightTabs() {
   $$('[data-rpane="map"]', va).forEach(el => el.style.display = "none");
 }
 
-function setupInstrumentsTabs() {
-  const tabs = $$("#instruments-tabs .panel-tab");
-  const panes = $$(".instruments-content > [data-itab]");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("is-active"));
-      tab.classList.add("is-active");
-      const target = tab.dataset.itab;
-      panes.forEach(p => p.classList.toggle("is-active", p.dataset.itab === target));
-    });
-  });
-}
+// PFD / Engines are now separate modules — no sub-tabs.
+function setupInstrumentsTabs() {}
 
-function setupInstrumentsResize() {
-  const handle = $("#instruments-resize");
-  const va = $("#visualizer-area");
-  const ip = $("#instruments-pane");
-  if (!handle || !va || !ip) return;
-  let dragging = false;
-  handle.addEventListener("mousedown", () => {
-    dragging = true;
-    document.body.style.cursor = "row-resize";
-    document.body.style.userSelect = "none";
-  });
-  document.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    const right = document.querySelector(".right-panel");
-    const rect = right.getBoundingClientRect();
-    // Subtract space for tabs + handle (~44 + 4 = 48)
-    const usable = rect.height - 48;
-    const yLocal = e.clientY - rect.top - 44;
-    const topPct = Math.max(20, Math.min(80, (yLocal / usable) * 100));
-    va.style.flex = `1 1 ${topPct}%`;
-    ip.style.flex = `1 1 ${100 - topPct}%`;
-  });
-  document.addEventListener("mouseup", () => {
-    dragging = false;
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-  });
-}
+// Removed in mosaic refactor — visualizer and instruments are now separate
+// mosaic modules with their own resize via .mosaic-resize handles.
+function setupInstrumentsResize() {}
 
 function setupFinder() {
   // search input gets an id
@@ -3517,104 +4496,300 @@ function positionSidebarPopover(pop, btn) {
   pop.style.top = Math.max(8, bRect.bottom - h) + "px";
 }
 
-function setupLayoutOptions() {
-  $$(".layout-option").forEach(opt => {
-    opt.addEventListener("click", () => {
-      const opts = $$(".layout-option");
-      opts.forEach(o => o.classList.remove("is-active"));
-      opt.classList.add("is-active");
-      const idx = opts.indexOf(opt);
-      applyLayout(idx);
-    });
-  });
-}
-
-function applyLayout(idx) {
-  // 0 = Full (graphs only), 1 = Split (graphs + right), 2 = 3-up (graphs + tabular + right)
-  const panels       = document.querySelector(".panels");
-  const right        = document.querySelector(".right-panel");
-  const mainHandle   = document.querySelector(".panels > .resize-handle");
-  const thirdPane    = $("#third-pane");
-  const thirdResize  = $("#third-resize");
-  const tabularPC    = document.querySelector('.panel-content[data-mod="tabular"]');
-  const tabularTab   = document.querySelector('#module-tabs .panel-tab[data-mod="tabular"]');
-  const graphsPanel  = document.querySelector(".graphs-panel");
-  const graphsHome   = graphsPanel; // tabular originally lives inside .graphs-panel
-
-  panels.classList.toggle("is-3up", idx === 2);
-
-  // Helper: pull tabular back to its home in graphs-panel and clear any
-  // sticky `is-active` flag so it doesn't double up with the active module.
-  function returnTabularHome() {
-    if (tabularPC.parentElement.id === "third-pane-content") {
-      graphsHome.appendChild(tabularPC);
-    }
-    const activeMod = document.querySelector('#module-tabs .panel-tab.is-active')?.dataset.mod;
-    tabularPC.classList.toggle("is-active", activeMod === "tabular");
-  }
-
-  if (idx === 0) {
-    // Full — only graphs panel
-    right.style.display = "none";
-    mainHandle.style.display = "none";
-    thirdPane.style.display = "none";
-    thirdResize.style.display = "none";
-    graphsPanel.style.flex = "1";
-    tabularTab.style.display = "";
-    returnTabularHome();
-  } else if (idx === 1) {
-    // Split — graphs + right
-    right.style.display = "";
-    mainHandle.style.display = "";
-    thirdPane.style.display = "none";
-    thirdResize.style.display = "none";
-    graphsPanel.style.flex = "0 0 58%";
-    right.style.flex = "";
-    tabularTab.style.display = "";
-    returnTabularHome();
-  } else {
-    // 3-up — graphs + tabular column + right
-    right.style.display = "";
-    mainHandle.style.display = "";
-    thirdPane.style.display = "";
-    thirdResize.style.display = "";
-    graphsPanel.style.flex = "0 0 36%";
-    right.style.flex = "0 0 32%";
-    // Move tabular into the third pane (CSS makes it visible there
-    // regardless of `.is-active`, so we don't toggle the flag).
-    $("#third-pane-content").appendChild(tabularPC);
-    // Hide tabular tab in module-tabs (it's permanent in column 2 now)
-    tabularTab.style.display = "none";
-    // If user was on tabular module, switch them to graphs
-    const activeTab = document.querySelector('#module-tabs .panel-tab.is-active');
-    if (activeTab && activeTab.dataset.mod === "tabular") {
-      const graphsTabBtn = document.querySelector('#module-tabs .panel-tab[data-mod="graphs"]');
-      if (graphsTabBtn) graphsTabBtn.click();
-    }
-  }
-}
-
-function setupPanelResize() {
-  const handle = document.querySelector(".panels > .resize-handle");
-  const graphs = document.querySelector(".graphs-panel");
-  let dragging = false;
-  handle.addEventListener("mousedown", () => { dragging = true; document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none"; });
-  document.addEventListener("mousemove", e => {
-    if (!dragging) return;
-    const panels = document.querySelector(".panels");
-    const rect = panels.getBoundingClientRect();
-    const pct = Math.max(25, Math.min(75, ((e.clientX-rect.left)/rect.width)*100));
-    graphs.style.flex = `0 0 ${pct}%`;
-  });
-  document.addEventListener("mouseup", () => { dragging = false; document.body.style.cursor = ""; document.body.style.userSelect = ""; });
-}
+// Removed in mosaic refactor — visibility is now controlled by the
+// module-toggles inside the Layout popover, and arrangement by drag/resize.
+function setupLayoutOptions() {}
+function setupPanelResize() {}
 
 function toggleSidebar() { $("#sidebar").classList.toggle("is-collapsed"); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Flight info strip — slide-down summary triggered by the flight name
+   ────────────────────────────────────────────────────────────────────────── */
+function renderFlightInfoStrip() {
+  const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
+  const fields = [
+    ["Flight",       `#${FLIGHT.id}`],
+    ["Aircraft",     FLIGHT.aircraft],
+    ["Operator",     FLIGHT.operator],
+    ["Flight type",  FLIGHT.flightType],
+    ["Origin",       FLIGHT.origin],
+    ["Destination",  FLIGHT.destination],
+    ["Takeoff",      `${FLIGHT.takeoffDate} · ${FLIGHT.startStr}Z`],
+    ["Landing",      `${FLIGHT.landingDate} · ${FLIGHT.endStr}Z`],
+    ["Duration",     `${m}:${String(s).padStart(2,"0")}`],
+  ];
+  $("#flight-info-strip-inner").innerHTML = fields.map(([k,v]) =>
+    `<div><span class="kv-label">${k}</span><span class="kv-value">${v}</span></div>`
+  ).join("");
+}
+function setupFlightInfoToggle() {
+  const btn   = $("#flight-info-toggle");
+  const strip = $("#flight-info-strip");
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const open = !strip.classList.contains("is-open");
+    strip.classList.toggle("is-open", open);
+    strip.setAttribute("aria-hidden", open ? "false" : "true");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   EVENT POPOVER — lightweight, in-place response to a pin click.
+   Heavy detail (full description + comments thread) lives in the drawer,
+   opened from this popover's "Open full detail" link or from a Status row.
+   ────────────────────────────────────────────────────────────────────────── */
+
+function openEventPopover(eventId, anchor) {
+  const ev = FLIGHT.events.find(e => e.id === eventId);
+  if (!ev || !anchor) return;
+
+  // Toggle off if clicking the same anchor twice
+  const pop = $("#event-popover");
+  if (pop.dataset.activeId === String(eventId) && pop.classList.contains("is-open")) {
+    closeEventPopover();
+    return;
+  }
+
+  seekTo(ev.pct);
+  pop.dataset.activeId = ev.id;
+  pop.innerHTML = `
+    <div class="event-popover__head">
+      <span class="sev-pill level-${ev.level}">L${ev.level}</span>
+      <div class="event-popover__title">${ev.code}</div>
+      <div class="event-popover__time">${pctToTime(ev.pct)}</div>
+      <button class="event-popover__close" data-popover-close title="Close (Esc)">×</button>
+    </div>
+    <div class="event-popover__values">
+      <div><span class="kv-label">Value</span><span class="kv-value">${ev.value}</span></div>
+      <div><span class="kv-label">Threshold</span><span class="kv-value">${ev.threshold}</span></div>
+      <div><span class="kv-label">Phase</span><span class="kv-value">${ev.phase}</span></div>
+    </div>
+    <div class="event-popover__pills">
+      <div class="ev-pill ev-pill--status ev-pill--status-${ev.status}" data-popover-status>
+        <span class="ev-pill__dot"></span>${STATUS_LABELS[ev.status]} <span class="ev-pill__caret">▾</span>
+      </div>
+      <div class="ev-pill ev-pill--validity" data-popover-validity>
+        ${VALIDITY_LABELS[ev.validity]} <span class="ev-pill__caret">▾</span>
+      </div>
+    </div>
+    <button class="event-popover__detail" data-open-detail>Open full detail →</button>
+  `;
+
+  pop.classList.add("is-open");
+  pop.setAttribute("aria-hidden", "false");
+  positionEventPopover(pop, anchor);
+
+  pop.querySelector("[data-popover-close]").addEventListener("click", e => {
+    e.stopPropagation();
+    closeEventPopover();
+  });
+  pop.querySelector("[data-open-detail]").addEventListener("click", e => {
+    e.stopPropagation();
+    closeEventPopover();
+    openEventDrawer(ev.id);
+  });
+  pop.querySelector("[data-popover-status]").addEventListener("click", e => {
+    e.stopPropagation();
+    openInlinePicker(e.currentTarget,
+      STATUS_LIST.map(s => ({key:s, label:STATUS_LABELS[s], dot:s})),
+      val => { ev.status = val; ev.statusBy = "You"; openEventPopover(ev.id, anchor); renderStatus(); });
+  });
+  pop.querySelector("[data-popover-validity]").addEventListener("click", e => {
+    e.stopPropagation();
+    openInlinePicker(e.currentTarget,
+      VALIDITY_LIST.map(v => ({key:v, label:VALIDITY_LABELS[v]})),
+      val => { ev.validity = val; ev.validityBy = val === "auto" ? "—" : "You"; openEventPopover(ev.id, anchor); });
+  });
+}
+
+function closeEventPopover() {
+  const pop = $("#event-popover");
+  pop.classList.remove("is-open");
+  pop.setAttribute("aria-hidden", "true");
+  delete pop.dataset.activeId;
+}
+
+function positionEventPopover(pop, anchor) {
+  // Reset so we can measure natural size
+  pop.style.top = "0px"; pop.style.left = "0px"; pop.style.maxHeight = "";
+  const PAD = 8;
+  const a = anchor.getBoundingClientRect();
+  const m = pop.getBoundingClientRect();
+  const VW = window.innerWidth, VH = window.innerHeight;
+  // Vertical: prefer below the anchor (pins live at top of timeline so below works)
+  const spaceBelow = VH - a.bottom - PAD;
+  const spaceAbove = a.top - PAD;
+  let top;
+  if (m.height <= spaceBelow) top = a.bottom + 6;
+  else if (m.height <= spaceAbove) top = a.top - m.height - 6;
+  else { top = PAD; pop.style.maxHeight = (VH - 2*PAD) + "px"; }
+  // Horizontal: centered on anchor, clamped to viewport
+  let left = a.left + a.width/2 - m.width/2;
+  left = Math.max(PAD, Math.min(VW - m.width - PAD, left));
+  pop.style.top = top + "px";
+  pop.style.left = left + "px";
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   EVENT DETAIL DRAWER
+   Inspect, validate, change status, comment — without leaving the simulator.
+   ────────────────────────────────────────────────────────────────────────── */
+
+const STATUS_LABELS = { open: "Open", in_progress: "In Progress", closed: "Closed" };
+const STATUS_LIST   = ["open", "in_progress", "closed"];
+const VALIDITY_LIST = ["auto", "manual"];
+const VALIDITY_LABELS = { auto: "Auto Validated", manual: "Validated by you" };
+
+function openEventDrawer(eventId) {
+  const ev = FLIGHT.events.find(e => e.id === eventId);
+  if (!ev) return;
+  STATE.activeEventId = ev.id;
+  seekTo(ev.pct);
+  renderEventDrawer();
+  document.body.classList.add("has-event-drawer");
+  $("#event-drawer").setAttribute("aria-hidden", "false");
+}
+
+function closeEventDrawer() {
+  STATE.activeEventId = null;
+  document.body.classList.remove("has-event-drawer");
+  $("#event-drawer").setAttribute("aria-hidden", "true");
+}
+
+function renderEventDrawer() {
+  const ev = FLIGHT.events.find(e => e.id === STATE.activeEventId);
+  if (!ev) return;
+  const drawer = $("#event-drawer");
+  const td = pctToTime(ev.pct);
+
+  drawer.innerHTML = `
+    <header class="event-drawer__head">
+      <div class="event-drawer__id">#${ev.id}</div>
+      <h2 class="event-drawer__title">${ev.name} <small>(at ${td})</small></h2>
+      <button class="event-drawer__close" title="Close" data-close>×</button>
+    </header>
+
+    <section class="event-drawer__meta">
+      <div><span class="kv-label">Flight</span><span class="kv-value">${FLIGHT.id}</span></div>
+      <div><span class="kv-label">Reference</span><span class="kv-value">${ev.reference}</span></div>
+      <div><span class="kv-label">Aircraft</span><span class="kv-value">${FLIGHT.aircraft}</span></div>
+      <div><span class="kv-label">Phase</span><span class="kv-value">${ev.phase}</span></div>
+      <div><span class="kv-label">Origin</span><span class="kv-value">${FLIGHT.origin}</span></div>
+      <div><span class="kv-label">Destination</span><span class="kv-value">${FLIGHT.destination}</span></div>
+    </section>
+
+    <section class="event-drawer__card">
+      <div class="event-drawer__card-head">
+        <div>
+          <div class="event-drawer__code">${ev.code}</div>
+          <span class="sev-pill level-${ev.level}">L${ev.level}</span>
+        </div>
+        <div class="event-drawer__card-values">
+          <div><span class="kv-label">Value</span><span class="kv-value">${ev.value}</span></div>
+          <div><span class="kv-label">Threshold</span><span class="kv-value">${ev.threshold}</span></div>
+          <div><span class="kv-label">Time</span><span class="kv-value">${td}</span></div>
+          <div><span class="kv-label">Status By</span><span class="kv-value">${ev.statusBy || "—"}</span></div>
+          <div><span class="kv-label">Validity By</span><span class="kv-value">${ev.validityBy || "—"}</span></div>
+        </div>
+      </div>
+      <div class="event-drawer__card-actions">
+        <button class="ev-btn ev-btn--simulate" data-simulate>
+          <span class="event-summary__simulate-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
+          Jump to moment
+        </button>
+        <div class="ev-pill ev-pill--validity" data-validity-pill>
+          ${VALIDITY_LABELS[ev.validity]} <span class="ev-pill__caret">▾</span>
+        </div>
+        <div class="ev-pill ev-pill--status ev-pill--status-${ev.status}" data-status-pill>
+          <span class="ev-pill__dot"></span>${STATUS_LABELS[ev.status]} <span class="ev-pill__caret">▾</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="event-drawer__section">
+      <div class="event-drawer__section-label">Event description</div>
+      <div class="event-drawer__desc">${ev.description}</div>
+    </section>
+
+    <section class="event-drawer__section">
+      <div class="event-drawer__section-label">Comments</div>
+      <div class="event-drawer__compose">
+        <textarea class="event-drawer__compose-input" id="event-comment-input" placeholder="Write a comment…" rows="2"></textarea>
+        <div class="event-drawer__compose-row">
+          <button class="event-drawer__post" data-post>Post</button>
+        </div>
+      </div>
+      <div class="event-drawer__comments">
+        ${ev.comments.length === 0 ? `<div class="event-drawer__no-comments">No comments yet.</div>` :
+          ev.comments.map(c => `
+            <div class="event-comment">
+              <div class="event-comment__text">${escapeHtml(c.text)}</div>
+              <div class="event-comment__meta"><strong>${c.author}</strong> · ${c.ago}</div>
+            </div>`).join("")}
+      </div>
+    </section>
+  `;
+
+  drawer.querySelector("[data-close]").addEventListener("click", closeEventDrawer);
+  drawer.querySelector("[data-simulate]").addEventListener("click", () => seekTo(ev.pct));
+  drawer.querySelector("[data-status-pill]").addEventListener("click", e => {
+    e.stopPropagation();
+    openInlinePicker(e.currentTarget, STATUS_LIST.map(s => ({key:s, label:STATUS_LABELS[s], dot:s})), val => {
+      ev.status = val; ev.statusBy = "You";
+      renderEventDrawer();
+      renderStatus(); // status table reflects status changes
+    });
+  });
+  drawer.querySelector("[data-validity-pill]").addEventListener("click", e => {
+    e.stopPropagation();
+    openInlinePicker(e.currentTarget, VALIDITY_LIST.map(v => ({key:v, label:VALIDITY_LABELS[v]})), val => {
+      ev.validity = val; ev.validityBy = val === "auto" ? "—" : "You";
+      renderEventDrawer();
+    });
+  });
+  drawer.querySelector("[data-post]").addEventListener("click", () => {
+    const input = $("#event-comment-input");
+    const text = input.value.trim();
+    if (!text) return;
+    ev.comments.unshift({ author: "You", ago: "just now", text });
+    renderEventDrawer();
+  });
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+}
+
+function openInlinePicker(anchor, items, onPick) {
+  document.querySelectorAll(".inline-picker").forEach(p => p.remove());
+  const p = document.createElement("div");
+  p.className = "inline-picker";
+  p.innerHTML = items.map(it => `<button data-key="${it.key}"${it.dot?` data-dot="${it.dot}"`:""}>${it.label}</button>`).join("");
+  document.body.appendChild(p);
+  const r = anchor.getBoundingClientRect();
+  p.style.left = r.left + "px";
+  p.style.top = (r.bottom + 4) + "px";
+  p.addEventListener("click", e => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    onPick(btn.dataset.key);
+    p.remove();
+  });
+  setTimeout(() => {
+    function close(e) {
+      if (!p.contains(e.target)) { p.remove(); document.removeEventListener("click", close); }
+    }
+    document.addEventListener("click", close);
+  }, 0);
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    BOOT
    ────────────────────────────────────────────────────────────────────────── */
 renderTimeline();
+renderFlightInfoStrip();
 renderFinder();
 renderGraphs();
 renderTabular();
@@ -3622,17 +4797,37 @@ renderInstruments();
 renderStatus();
 renderMap();
 
+// Drawer + popover dismiss wiring
+$("#event-drawer-backdrop").addEventListener("click", closeEventDrawer);
+$("#event-popover").addEventListener("click", e => e.stopPropagation());
+document.addEventListener("click", e => {
+  // Click outside the popover dismisses it. Pin clicks call stopPropagation
+  // before reaching here, so they don't trigger this.
+  const pop = document.getElementById("event-popover");
+  if (pop && pop.classList.contains("is-open") && !pop.contains(e.target)) {
+    closeEventPopover();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { closeEventPopover(); closeEventDrawer(); }
+});
+
 setupTimeline();
 setupPlayback();
-setupModuleTabs();
+setupFlightInfoToggle();
 setupRightTabs();
-setupFinder();
-setupLayoutOptions();
-setupSidebarPopovers();
-setupPanelResize();
 setupInstrumentsTabs();
-setupInstrumentsResize();
+setupFinder();
+setupSidebarPopovers();
 setupAddEmptyGraph();
+
+// Mosaic system — must run AFTER all module-internal renders have placed
+// their content into the module bodies (they did, above).
+applyMosaic();
+setupModuleHideButtons();
+setupMosaicResize();
+setupMosaicReorder();
+renderTemplatesList();
 
 update();
 </script>
