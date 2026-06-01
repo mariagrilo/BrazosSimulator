@@ -7,6 +7,38 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
+    /* Acid Grotesk — local files in assets/fonts/, full weight ramp.
+       Weight map: 300=Light, 350=Book (the body weight per Figma), 400=Normal (display title
+       weight per Figma), 450=Regular, 500=Medium, 700=Bold. */
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 300; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Light-TRIAL.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 350; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Book.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 400; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Normal-TRIAL.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 450; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Regular-TRIAL.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 500; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Medium-TRIAL.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: normal; font-weight: 700; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Bold-TRIAL.otf") format("opentype");
+    }
+    @font-face {
+      font-family: "Acid Grotesk"; font-style: italic; font-weight: 400; font-display: swap;
+      src: url("assets/fonts/FFF-AcidGrotesk-Regular-Italic-TRIAL.otf") format("opentype");
+    }
+
     /* ─── Design Tokens ─────────────────────────────────────────────────── */
     :root {
       /* Colours */
@@ -29,20 +61,20 @@
 
       /* Layout */
       --topbar-height:     56px;
-      --timeline-height:   76px;
+      --timeline-height:   70px;
       --sidebar-width:     260px;
       --sidebar-collapsed: 52px;
       --panel-gap:         1px;       /* gap doubles as a divider line */
       --resize-handle:     4px;
 
       /* Typography — replace Inter with FFF Acid Grotesk when licensed */
-      --font-body:         'Inter', sans-serif;
-      --font-label:        'Space Grotesk', sans-serif;
+      --font-body:         'Acid Grotesk', 'Inter', sans-serif;  /* Body — Acid Grotesk Book (weight 350) per Figma */
+      --font-label:        'Space Grotesk', sans-serif;          /* Labels only — uppercase 10-12px */
     }
 
     /* ─── Reset ─────────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 14px; font-weight: 300; line-height: 1.4; }
+    html, body { height: 100%; overflow: hidden; background: var(--color-bg); color: var(--color-text); font-family: var(--font-body); font-size: 14px; font-weight: 350; line-height: 1.4; }
     button { background: none; border: none; cursor: pointer; color: inherit; font: inherit; }
     ul { list-style: none; }
 
@@ -64,14 +96,21 @@
     }
     .flight-info-strip.is-open { max-height: 120px; }
     .flight-info-strip__inner {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 14px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
       padding: 14px 24px;
     }
-    .flight-info-strip__inner > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    /* Equal-share columns: 9 items split the strip width evenly. Long values
+       truncate with the ellipsis already set on .kv-value below, so the strip
+       stays on a single line at any reasonable viewport width. */
+    .flight-info-strip__inner > div {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex; flex-direction: column; gap: 2px;
+    }
     .flight-info-strip__inner .kv-value {
-      font-family: var(--font-label); font-size: 13px;
+      font-family: var(--font-body); font-size: 13px;
       color: var(--color-text);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
@@ -302,7 +341,7 @@
 
     .timeline-bar__track {
       position: relative;
-      height: 32px;
+      height: 48px;
       background: var(--color-bg);
       border: 1px solid var(--color-border);
       border-radius: 4px;
@@ -358,7 +397,7 @@
     .timeline-bar__current {
       position: absolute;
       left: 28%;
-      top: 38px;
+      top: 54px;
       transform: translateX(-50%);
       font-family: var(--font-label);
       font-size: 10px;
@@ -388,9 +427,9 @@
        tip aligned with the event time */
     .event-marker {
       position: absolute;
-      top: 4px;            /* sits inside the 32px track */
-      width: 14px;
-      height: 24px;
+      bottom: 4px;         /* anchored to the bottom of the 48px track */
+      width: 22px;
+      height: 22px;
       transform: translateX(-50%);
       cursor: pointer;
       z-index: 5;
@@ -836,13 +875,35 @@
       transition: background 0.15s;
       z-index: 4;
     }
+    /* Expanded hit area — invisible, makes the 1px line easy to grab. */
     .mosaic-divider::after {
       content: '';
       position: absolute;
-      inset: -3px;
+      inset: -4px;
+    }
+    /* Centered grip — only shows on hover/active. Reads as "this is resizable". */
+    .mosaic-divider::before {
+      content: '';
+      position: absolute;
+      background: var(--color-accent);
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+    }
+    .mosaic-divider--h::before {
+      width: 3px; height: 28px;
+      left: -1px; top: 50%; transform: translateY(-50%);
+    }
+    .mosaic-divider--v::before {
+      width: 28px; height: 3px;
+      top: -1px; left: 50%; transform: translateX(-50%);
     }
     .mosaic-divider:hover, .mosaic-divider.is-active {
       background: var(--color-accent);
+    }
+    .mosaic-divider:hover::before, .mosaic-divider.is-active::before {
+      opacity: 1;
     }
     .mosaic-divider--h { width: 1px; cursor: col-resize; }
     .mosaic-divider--v { height: 1px; cursor: row-resize; }
@@ -854,19 +915,54 @@
       min-width: 0;
       min-height: 0;
       position: relative;
+      flex: 1; /* Fill the parent .mosaic-pane — pane already has the correct share from the split tree. */
     }
-    .module.is-drag-target { outline: 2px dashed var(--color-accent); outline-offset: -3px; }
     .module.is-dragging    { opacity: 0.45; }
+    /* Drop preview — translucent teal rectangle showing where the dragged module will land.
+       Single element appended to #mosaic on drag start, repositioned on every mousemove. */
+    .mosaic-phantom {
+      position: absolute;
+      pointer-events: none;
+      background: rgba(40, 200, 185, 0.18);
+      border: 1.5px solid var(--color-accent);
+      border-radius: 2px;
+      z-index: 100;
+      transition: left 80ms ease, top 80ms ease, width 80ms ease, height 80ms ease;
+      display: none;
+    }
+    .mosaic-phantom.is-active { display: block; }
     .module__head {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 8px 10px 8px 14px;
+      gap: 8px;
+      padding: 8px 10px 8px 6px;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
       min-height: 36px;
     }
+    /* Drag handle is the primary affordance — lives left of title (set via JS).
+       Persistent at 0.45 opacity so analysts always see it; full strength on hover. */
+    .module__head > .module__drag {
+      opacity: 0.45;
+    }
+    .module:hover .module__head > .module__drag { opacity: 0.85; }
+    .module__head > .module__drag:hover { opacity: 1; }
+    /* Hide button is destructive — recede at rest, surface only on header hover. */
+    .module__hide {
+      opacity: 0 !important;
+      transition: opacity 0.15s, color 0.15s, background 0.15s !important;
+    }
+    .module__head:hover .module__hide { opacity: 0.55 !important; }
+    .module__head:hover .module__hide:hover { opacity: 1 !important; }
+    /* Per-module min sizes — prevents 3D-squished and Map-in-void after layout changes.
+       Set on the .module so the parent flex pane has a real intrinsic floor. */
+    .module[data-module="view3d"]  { min-height: 220px; min-width: 280px; }
+    .module[data-module="pfd"]     { min-height: 360px; min-width: 280px; }
+    .module[data-module="map"]     { min-height: 200px; min-width: 280px; }
+    .module[data-module="engines"] { min-height: 220px; min-width: 280px; }
+    .module[data-module="graphs"]  { min-height: 280px; min-width: 320px; }
+    .module[data-module="tabular"] { min-height: 220px; min-width: 320px; }
     .module__title {
       font-family: var(--font-label);
       font-size: 11px;
@@ -893,6 +989,8 @@
     }
     .module__tab:hover { color: var(--color-text-dim); }
     .module__tab.is-active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .module__tab-pane { display: none; flex: 1; min-height: 0; min-width: 0; flex-direction: column; overflow: auto; }
+    .module__tab-pane.is-active { display: flex; }
     .module__head-actions {
       margin-left: auto;
       display: flex; align-items: center; gap: 2px;
@@ -1286,21 +1384,57 @@
     }
 
     /* Drop zone */
+    /* Add-a-graph — confident action, not an empty drop zone.
+       Solid border + subtle teal wash at rest say "button"; the icon pill matches the
+       visual language already established by the event pins and Specifications chip. */
     .graph-drop-zone {
-      border: 1px dashed var(--color-border);
-      border-radius: 6px;
-      height: 52px;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      color: var(--color-text-muted);
-      font-size: 12px;
+      gap: 10px;
+      height: 52px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: rgba(40, 200, 185, 0.04);
+      color: var(--color-text-dim);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 350;
+      letter-spacing: 0.01em;
       cursor: pointer;
-      transition: all 0.15s;
+      /* ease-out feels confident; avoiding bounce/elastic per the skill's note. */
+      transition: background 160ms ease-out, border-color 160ms ease-out,
+                  color 160ms ease-out, transform 160ms ease-out;
     }
-    .graph-drop-zone:hover { border-color: var(--color-accent); color: var(--color-accent); background: rgba(40,200,185,0.04); }
-    .graph-drop-zone { font: inherit; font-family: var(--font-body); }
+    .graph-drop-zone__icon {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(40, 200, 185, 0.20);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--color-accent);
+      flex-shrink: 0;
+      transition: background 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
+    }
+    .graph-drop-zone:hover {
+      background: rgba(40, 200, 185, 0.08);
+      border-color: rgba(40, 200, 185, 0.55);
+      color: var(--color-text);
+      transform: translateY(-1px);
+    }
+    .graph-drop-zone:hover .graph-drop-zone__icon {
+      background: var(--color-accent);
+      color: var(--color-bg);
+      transform: scale(1.08);
+    }
+    .graph-drop-zone:active {
+      transform: translateY(0);
+      background: rgba(40, 200, 185, 0.12);
+    }
+    .graph-drop-zone:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 2px;
+    }
 
     /* Empty graph CTA — opens the param picker */
     .graph-card__empty-cta {
@@ -1393,47 +1527,75 @@
        (.pfd is grid, .engines is flex) */
     .instruments-content > [data-itab]:not(.is-active) { display: none; }
     .instruments-pane .pfd { gap: 8px; }
-    .instruments-pane .engines { gap: 12px; }
+    .instruments-pane .engines { gap: 8px; }
 
     .visualizer-pane {
       flex: 1;
-      background: #000;
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
+      min-height: 0;
     }
 
-    /* 3D placeholder */
+    /* 3D placeholder — photographic top-down still while real WebGL is pending.
+       Image fills the entire pane; readouts and watermark sit on top. */
     .visualizer-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      color: var(--color-text-muted);
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background-image: url("assets/helicopter-placeholder.png");
+      background-size: cover;
+      background-position: center;
+      background-color: #050505;
     }
-    .visualizer-placeholder__aircraft {
-      width: 64px;
-      height: 64px;
-      opacity: 0.25;
+    /* Slight vignette so the corners don't fight the readouts overlay */
+    .visualizer-placeholder::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.45) 100%);
+      pointer-events: none;
     }
+    /* Watermark — bottom-right, low key */
     .visualizer-placeholder__label {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      z-index: 2;
       font-family: var(--font-label);
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 500;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    }
+    .visualizer-placeholder__label::before {
+      content: "●";
+      color: var(--color-accent);
+      margin-right: 6px;
+      font-size: 7px;
+      vertical-align: 1px;
     }
 
     /* Map pane */
+    /* Map pane — sized to fill its module body. Layered background suggests a
+       dim aerial chart: deep-water teal → shallow → coastline brown.
+       The flight path and reference layers ride on top via SVG. */
     .map-pane {
-      height: 200px;
-      flex-shrink: 0;
-      background: #0c1f18;
+      flex: 1;
+      min-height: 0;
       border-top: 1px solid var(--color-border);
       position: relative;
       overflow: hidden;
+      background:
+        /* Subtle dithered "water sparkle" — 1px radial-gradient mini-stars */
+        radial-gradient(circle at 22% 41%, rgba(125,180,210,0.06) 0, transparent 1.2px),
+        radial-gradient(circle at 78% 18%, rgba(125,180,210,0.05) 0, transparent 1.2px),
+        radial-gradient(circle at 64% 73%, rgba(125,180,210,0.05) 0, transparent 1.2px),
+        radial-gradient(circle at 31% 86%, rgba(125,180,210,0.04) 0, transparent 1.4px),
+        /* Soft depth gradient (shallow ↗ deep ↘) */
+        radial-gradient(ellipse at 15% 80%, #143847 0%, #0a2331 55%, #051721 100%);
     }
     .map-pane::after {
       content: 'MAP';
@@ -1601,39 +1763,69 @@
       z-index: 1;
     }
     .tabular-table td:first-child, .tabular-table th:first-child { text-align: left; }
-    .tabular-table tr.is-current td { background: rgba(40,200,185,0.08); color: var(--color-text); }
+    .tabular-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .tabular-table tbody tr:hover td { background: rgba(40,200,185,0.05); }
+    .tabular-table tr.is-current td { background: rgba(40,200,185,0.12); color: var(--color-text); }
+    /* Event marker — a 6px dot left of the time, severity-colored. Reserve column width
+       so non-event rows align with event rows (no jitter on scroll). */
+    .tabular-table td:first-child { position: relative; padding-left: 22px; }
+    .tabular-row-marker {
+      position: absolute;
+      left: 8px; top: 50%;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      box-shadow: 0 0 0 2px rgba(2,28,37,0.6); /* subtle separation from row bg */
+    }
+    .tabular-row-marker[data-level="3"] { background: var(--color-level-3); }
+    .tabular-row-marker[data-level="2"] { background: var(--color-level-2); }
+    .tabular-row-marker[data-level="1"] { background: var(--color-level-1); }
+    /* Event rows take their severity colour across the whole row, so the eye
+       catches the event's gravity from any column — not just the time cell. */
+    .tabular-table tr.has-event[data-event-level="3"] td { color: var(--color-level-3); }
+    .tabular-table tr.has-event[data-event-level="2"] td { color: var(--color-level-2); }
+    .tabular-table tr.has-event[data-event-level="1"] td { color: var(--color-level-1); }
     .tabular-scroll { flex: 1; overflow: auto; padding: 0 8px; }
 
     /* Status — hierarchical page (hero · route · events · approaches) */
-    .status-page { flex: 1; overflow: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+    /* No inner scroll — let sections grow to their natural height and overflow
+       into the parent .module__tab-pane scroller. The whole tab scrolls as one. */
+    .status-page { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 
-    /* Hero — severity-led summary (judgment-only; flight ID lives elsewhere) */
+    /* Hero — severity counts only. The verdict sentence was redundant with the
+       counts themselves (three counts at a glance tell the same story without
+       the editorial framing). Stacked stat blocks: big severity-coloured numeral
+       on top, uppercase label beneath. Bolder per pixel, smaller overall. */
     .status-hero {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 18px 20px;
-      border-radius: 8px;
-      border-left: 4px solid var(--color-level-1);
+      gap: 18px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border-left: 3px solid var(--color-level-1);
       background: var(--color-surface);
     }
     .status-hero--level-2 { border-left-color: var(--color-level-2); }
     .status-hero--level-3 { border-left-color: var(--color-level-3); }
-    .status-hero__verdict {
-      font-family: var(--font-label);
-      font-size: 18px;
-      font-weight: 500;
-      color: var(--color-text);
-      margin-bottom: 8px;
-    }
-    .status-hero__counts { display: flex; gap: 14px; flex-wrap: wrap; }
     .status-count {
-      font-family: var(--font-label);
-      font-size: 11px;
-      color: var(--color-text-muted);
-      letter-spacing: 0.04em;
+      display: flex; flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
     }
-    .status-count b { color: var(--color-text); font-size: 14px; font-weight: 500; margin-right: 4px; }
+    .status-count b {
+      font-family: "Acid Grotesk", sans-serif;
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+    .status-count span {
+      font-family: var(--font-label);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
     .status-count.level-3 b { color: var(--color-level-3); }
     .status-count.level-2 b { color: var(--color-level-2); }
     .status-count.level-1 b { color: var(--color-level-1); }
@@ -1683,10 +1875,10 @@
       overflow: hidden;
     }
     .status-section__title {
-      padding: 12px 18px 10px;
+      padding: 9px 14px;
       margin: 0;
       font-family: var(--font-label);
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
@@ -1694,39 +1886,68 @@
       border-bottom: 1px solid var(--color-border);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .status-section__count {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--color-text-dim);
       background: var(--color-bg);
-      padding: 1px 7px;
+      padding: 1px 6px;
       border-radius: 100px;
       letter-spacing: 0;
     }
 
-    /* Events table */
-    .status-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .status-table th, .status-table td {
-      padding: 10px 16px;
-      text-align: left;
+    /* Events as a compact list — survives any column width because each row stacks
+       its detail line under the headline. Replaces the 6-column table that broke
+       in the narrow Tabular slot. */
+    .status-event-list { display: flex; flex-direction: column; }
+    .status-event {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 12px;
       border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background 0.1s;
     }
-    .status-table th {
+    .status-event:hover { background: var(--color-surface-hi); }
+    .status-event:last-child { border-bottom: none; }
+    .status-event__head {
+      display: flex; flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+    .status-event__name {
+      font-size: 12px;
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .status-event__meta {
       font-family: var(--font-label);
-      font-size: 10px;
-      font-weight: 500;
+      font-size: 9px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--color-text-muted);
-      background: var(--color-bg);
     }
-    .status-table tbody tr { cursor: pointer; transition: background 0.1s; }
-    .status-table tbody tr:hover { background: var(--color-surface-hi); }
-    .status-table tbody tr:last-child td { border-bottom: none; }
-    .status-table__time { font-family: var(--font-label); font-weight: 500; color: var(--color-accent); }
-    .status-table__sev { width: 50px; }
-    .status-table__num { text-align: right; font-family: var(--font-label); }
+    .status-event__meta-time { color: var(--color-accent); }
+    .status-event__values {
+      display: flex; flex-direction: column;
+      gap: 1px;
+      text-align: right;
+      font-family: var(--font-label);
+      flex-shrink: 0;
+    }
+    .status-event__value {
+      font-size: 12px;
+      color: var(--color-text);
+    }
+    .status-event__threshold {
+      font-size: 10px;
+      color: var(--color-text-muted);
+    }
     .sev-pill {
       display: inline-block;
       font-family: var(--font-label);
@@ -1740,13 +1961,13 @@
     .sev-pill.level-2 { background: var(--color-level-2); color: var(--color-bg); }
     .sev-pill.level-1 { background: var(--color-level-1); color: var(--color-bg); }
 
-    /* Approaches list */
+    /* Approaches list — same compact rhythm as the event list. */
     .status-approach-list { display: flex; flex-direction: column; }
     .status-approach {
       display: grid;
-      grid-template-columns: auto 1fr auto auto;
-      gap: 16px;
-      padding: 12px 18px;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      padding: 8px 12px;
       border-bottom: 1px solid var(--color-border);
       cursor: pointer;
       transition: background 0.1s;
@@ -1754,10 +1975,10 @@
     }
     .status-approach:hover { background: var(--color-surface-hi); }
     .status-approach:last-child { border-bottom: none; }
-    .status-approach__id { font-family: var(--font-label); font-size: 11px; color: var(--color-text-muted); }
-    .status-approach__name { color: var(--color-text); font-weight: 500; }
-    .status-approach__meta { font-size: 12px; color: var(--color-text-dim); }
-    .status-approach__td { font-family: var(--font-label); font-size: 12px; color: var(--color-accent); }
+    .status-approach__id { font-family: var(--font-label); font-size: 9px; color: var(--color-text-muted); letter-spacing: 0.04em; }
+    .status-approach__name { font-size: 12px; color: var(--color-text); }
+    .status-approach__meta { font-family: var(--font-label); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+    .status-approach__td { font-family: var(--font-label); font-size: 11px; color: var(--color-accent); text-align: right; }
 
     /* Approaches list */
     .approach-list { padding: 16px; overflow: auto; flex: 1; }
@@ -1961,39 +2182,39 @@
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 8px;
-      padding: 14px;
+      padding: 10px 12px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 8px;
       overflow: auto;
       position: relative;
     }
     .engines__col-headers {
       display: grid;
-      grid-template-columns: 38px 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: 32px 1fr 1fr;
+      gap: 8px;
       font-family: var(--font-label); font-size: 9px;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--color-text-muted);
-      padding-bottom: 6px;
+      padding-bottom: 4px;
       border-bottom: 1px solid var(--color-border);
     }
     .engines__col-headers div:nth-child(2),
     .engines__col-headers div:nth-child(3) { text-align: center; }
     .engine-row {
       display: grid;
-      grid-template-columns: 38px 1fr 1fr;
+      grid-template-columns: 32px 1fr 1fr;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .engine-row__label {
-      font-family: var(--font-label); font-size: 11px;
+      font-family: var(--font-label); font-size: 10px;
       color: var(--color-text-dim);
       letter-spacing: 0.04em; text-transform: uppercase;
     }
     .engine-bar {
       position: relative;
-      height: 22px;
+      height: 18px;
       background: var(--color-bg);
       border: 1px solid var(--color-border);
       border-radius: 3px;
@@ -2009,7 +2230,7 @@
     .engine-bar__fill.danger  { background: var(--color-level-3); }
     .engine-bar__value {
       position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-      font-family: var(--font-label); font-size: 11px; font-weight: 500;
+      font-family: var(--font-label); font-size: 10px; font-weight: 500;
       color: var(--color-text);
       z-index: 1;
       text-shadow: 0 0 4px var(--color-bg), 0 0 4px var(--color-bg);
@@ -2019,16 +2240,16 @@
     .engine-digital {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 8px;
       margin-top: auto;
-      padding-top: 10px;
+      padding-top: 6px;
       border-top: 1px solid var(--color-border);
     }
     .engine-digital__cell {
       background: var(--color-bg);
       border: 1px solid var(--color-border);
       border-radius: 4px;
-      padding: 6px 10px;
+      padding: 4px 8px;
     }
     .engine-digital__label {
       font-family: var(--font-label); font-size: 9px;
@@ -2036,33 +2257,105 @@
       color: var(--color-text-muted);
     }
     .engine-digital__value {
-      font-family: var(--font-label); font-size: 14px; font-weight: 500;
+      font-family: var(--font-label); font-size: 13px; font-weight: 500;
       color: var(--color-accent);
     }
 
-    /* Map polyline + colored event dots */
-    .map-pane svg { width: 100%; height: 100%; display: block; }
+    /* Map placeholder — photo background with zoom/pan. */
     .map-pane::after { display: none; }
-    .map-track { fill: none; stroke: var(--color-accent); stroke-width: 1.5; opacity: 0.8; }
-    .map-track-flown { stroke: var(--color-accent); stroke-width: 2; opacity: 1; }
-    .map-current { fill: var(--color-accent); }
-
-    /* 3D placeholder, animated */
-    .visualizer-pane {
-      background: radial-gradient(ellipse at center, #04313f 0%, #021018 100%);
+    .map-viewport {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
     }
+    .map-viewport.is-panning { cursor: grabbing; }
+    .map-image {
+      position: absolute;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform-origin: 0 0;
+      transform: translate(0px, 0px) scale(1);
+      will-change: transform;
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+    }
+    /* Smooth glide for button clicks; suppressed during wheel/drag for responsiveness. */
+    .map-image.is-animating { transition: transform 140ms ease-out; }
+    /* Zoom controls — bottom-right, compact, low-key. */
+    .map-controls {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      z-index: 3;
+      background: rgba(2, 28, 37, 0.75);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 4px;
+      overflow: hidden;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .map-controls button {
+      width: 26px; height: 26px;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.85);
+      font-family: var(--font-label);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, color 0.12s;
+    }
+    .map-controls button:hover { background: rgba(40,200,185,0.18); color: var(--color-accent); }
+    .map-controls button:active { background: rgba(40,200,185,0.28); }
+    .map-controls button + button { border-top: 1px solid rgba(255,255,255,0.10); }
+    /* Watermark — bottom-left, low key */
+    .map-watermark {
+      position: absolute;
+      bottom: 10px;
+      left: 12px;
+      z-index: 2;
+      font-family: var(--font-label);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+    }
+    .map-watermark::before {
+      content: "●";
+      color: var(--color-accent);
+      margin-right: 6px;
+      font-size: 7px;
+      vertical-align: 1px;
+    }
+
+    /* Readouts overlay — sits on top of the synthetic scene */
     .v-readout {
       position: absolute;
       top: 12px;
       left: 16px;
+      z-index: 2;
       font-family: var(--font-label);
       font-size: 11px;
       letter-spacing: 0.06em;
-      color: var(--color-text-dim);
+      color: rgba(255,255,255,0.85);
       line-height: 1.6;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
     .v-readout__row { display: flex; gap: 12px; }
-    .v-readout__row span:first-child { color: var(--color-text-muted); min-width: 60px; }
+    .v-readout__row span:first-child { color: rgba(255,255,255,0.55); min-width: 60px; }
     .v-readout__row strong { color: var(--color-accent); font-weight: 500; }
 
     .horizon {
@@ -2107,7 +2400,7 @@
     /* ─── Event popover (in-place response to pin click) ─────────────── */
     .event-popover {
       position: fixed;
-      width: 280px;
+      width: 340px;
       background: var(--color-surface-hi);
       border: 1px solid var(--color-accent);
       border-radius: 6px;
@@ -2194,23 +2487,38 @@
     }
     body.has-event-drawer .event-drawer { transform: translateX(0); }
     .event-drawer__head {
-      display: flex; align-items: baseline; gap: 12px;
-      padding: 16px 18px 12px;
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 16px 18px 14px;
       border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
     }
+    .event-drawer__head-text {
+      flex: 1; min-width: 0;
+      display: flex; flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    /* Larger uppercase severity pill — lives directly under the event title. */
+    .sev-pill--lg {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 12px;
+      font-size: 11px;
+      margin-top: 2px;
+    }
     .event-drawer__id {
-      font-family: var(--font-label); font-size: 11px;
+      font-family: var(--font-label); font-size: 12px;
       color: var(--color-text-muted); letter-spacing: 0.04em;
     }
+    /* Title spec from Figma 4936:22257 — Acid Grotesk 24/24, Normal weight, Light Blue 100. */
     .event-drawer__title {
-      flex: 1; min-width: 0;
-      font-family: var(--font-label); font-size: 18px; font-weight: 500;
+      font-family: "Acid Grotesk", "FFF Acid Grotesk", "Space Grotesk", sans-serif;
+      font-size: 24px;
+      font-weight: 400;
+      line-height: 24px;
       color: var(--color-accent);
       margin: 0;
-      line-height: 1.2;
     }
-    .event-drawer__title small { color: var(--color-text-dim); font-size: 13px; font-weight: 400; margin-left: 4px; }
     .event-drawer__close {
       width: 32px; height: 32px;
       display: flex; align-items: center; justify-content: center;
@@ -2223,48 +2531,151 @@
 
     .event-drawer__meta {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px 18px;
-      padding: 14px 18px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px 16px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--color-border);
       flex-shrink: 0;
     }
     .event-drawer__meta > div { display: flex; flex-direction: column; gap: 2px; }
+    /* Takeoff / Landing cells span 2 columns and include a sub-line for the airport. */
+    .event-drawer__meta-wide { grid-column: span 2; }
     .kv-label {
       font-family: var(--font-label); font-size: 9px;
       letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--color-text-muted);
     }
-    .kv-value { font-size: 13px; color: var(--color-text); }
+    .kv-value {
+      font-size: 12px; color: var(--color-text);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .kv-sub { font-size: 11px; color: var(--color-text-dim); margin-top: 1px; }
+    .kv-icon-btn {
+      width: 16px; height: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: none;
+      color: var(--color-text-muted);
+      font-size: 12px; line-height: 1;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: color 0.12s, background 0.12s;
+    }
+    .kv-icon-btn:hover { color: var(--color-accent); background: var(--color-surface-hi); }
+    /* Inline reference chip (e.g. "Specifications" next to a value) */
+    .kv-chip {
+      position: relative;
+      display: inline-flex; align-items: center;
+      padding: 2px 8px;
+      border-radius: 100px;
+      background: rgba(40,200,185,0.16);
+      color: var(--color-accent);
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .kv-chip:hover { background: rgba(40,200,185,0.28); }
+    /* Specifications tooltip — per Figma 1932:35624.
+       The bottom-left (squared) corner is anchored to the *center* of the chip
+       below, so the tooltip visually points down at its trigger. */
+    .spec-tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      min-width: 200px;
+      background: var(--color-border);  /* Blue 100 #074058 */
+      border-radius: 8px 8px 8px 0;
+      z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(3px);
+      transition: opacity 0.12s ease-out, transform 0.12s ease-out, visibility 0s linear 0.12s;
+      pointer-events: none;
+      color: white;
+    }
+    .kv-chip:hover .spec-tooltip,
+    .kv-chip:focus-within .spec-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      transition-delay: 0s;
+    }
+    .spec-tooltip__head {
+      padding: 10px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+    }
+    .spec-tooltip__title {
+      font-family: "Acid Grotesk", sans-serif;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.2;
+      color: white;
+    }
+    .spec-tooltip__code {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+      line-height: 1;
+    }
+    .spec-tooltip__list {
+      padding: 6px 0;
+      display: flex; flex-direction: column;
+    }
+    .spec-tooltip__row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 3px 14px;
+      height: 30px;
+    }
+    .spec-tooltip__badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 4px;
+      font-family: var(--font-label);
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--color-bg);
+      flex-shrink: 0;
+    }
+    .spec-tooltip__badge--3 { background: var(--color-level-3); }
+    .spec-tooltip__badge--2 { background: var(--color-level-2); }
+    .spec-tooltip__badge--1 { background: var(--color-level-1); }
+    .spec-tooltip__value {
+      font-family: "Acid Grotesk", sans-serif;
+      font-weight: 300;
+      font-size: 12px;
+      color: white;
+      white-space: nowrap;
+    }
 
     .event-drawer__card {
-      margin: 16px 18px 0;
+      margin: 14px 16px 0;
       border: 1px solid var(--color-border);
       border-radius: 8px;
       background: var(--color-surface);
-      padding: 14px 16px;
+      padding: 12px 14px;
       flex-shrink: 0;
     }
+    /* Card head: just the 3×2 grid of values now (severity moved to drawer header). */
     .event-drawer__card-head {
-      display: grid;
-      grid-template-columns: minmax(0,1fr) auto;
-      gap: 16px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--color-border);
     }
-    .event-drawer__code {
-      font-family: var(--font-label); font-size: 14px; font-weight: 500;
-      color: var(--color-text);
-      margin-bottom: 6px;
-    }
     .event-drawer__card-values {
       display: grid;
-      grid-template-columns: auto auto;
-      gap: 6px 18px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px 22px;
     }
-    .event-drawer__card-values > div { display: flex; flex-direction: column; gap: 1px; }
+    .event-drawer__card-values > div { display: flex; flex-direction: column; gap: 2px; }
     .event-drawer__card-actions {
-      display: flex; align-items: center; gap: 10px;
+      display: flex; align-items: center; gap: 8px;
       padding-top: 12px;
       flex-wrap: wrap;
     }
@@ -2278,7 +2689,7 @@
     }
     .ev-btn--simulate:hover { border-color: var(--color-accent); color: var(--color-accent); }
     .ev-pill {
-      display: inline-flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
       padding: 5px 10px;
       border: 1px solid var(--color-border);
       border-radius: 100px;
@@ -2293,52 +2704,105 @@
     .ev-pill__dot {
       width: 6px; height: 6px; border-radius: 50%;
       background: currentColor;
+      flex-shrink: 0;
     }
-    .ev-pill--validity { color: var(--color-text); }
+    /* Fixed widths so the pills never reflow when the label changes
+       (Open / In Progress / Closed and Auto Validated / Validated by you all sit
+       at the same size). Widths are tuned for the longest label in each set. */
+    .ev-pill--status   { width: 132px; }
+    .ev-pill--validity { color: var(--color-text); width: 168px; }
     .ev-pill--status-open       { color: var(--color-accent);   border-color: var(--color-accent); }
     .ev-pill--status-in_progress{ color: #F9F46E; border-color: #F9F46E; }
     .ev-pill--status-closed     { color: #6DEB5D; border-color: #6DEB5D; }
 
+    /* Sections (description, comments) — labelled, contained for visual rhythm. */
     .event-drawer__section {
-      padding: 14px 18px;
-      border-top: 1px solid var(--color-border);
+      padding: 14px 16px;
       flex-shrink: 0;
     }
-    .event-drawer__section:nth-of-type(odd) { background: transparent; }
     .event-drawer__section-label {
-      font-family: var(--font-label); font-size: 10px;
+      font-family: var(--font-label); font-size: 9px;
       letter-spacing: 0.1em; text-transform: uppercase;
       color: var(--color-text-muted);
       margin-bottom: 8px;
     }
-    .event-drawer__desc {
-      background: var(--color-surface);
-      border: 1px solid var(--color-border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-size: 13px;
-      color: var(--color-text);
-      line-height: 1.5;
-    }
-    .event-drawer__compose {
-      display: flex; flex-direction: column; gap: 6px;
-      margin-bottom: 14px;
-    }
-    .event-drawer__compose-input {
+    /* Description is editable — looks like the bordered box but accepts text input.
+       Auto-grows via vertical resize; outline matches the comment compose pattern. */
+    textarea.event-drawer__desc {
       width: 100%;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 6px;
       padding: 10px 12px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      color: var(--color-text);
+      line-height: 1.5;
+      min-height: 72px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      display: block;
+    }
+    textarea.event-drawer__desc::placeholder { color: var(--color-text-muted); }
+    textarea.event-drawer__desc:focus { border-color: var(--color-accent); }
+    /* Compose: textarea with an inline attach button bottom-right; post under it. */
+    .event-drawer__compose {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 14px;
+    }
+    .event-drawer__compose-input-wrap {
+      position: relative;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      transition: border-color 0.15s;
+    }
+    .event-drawer__compose-input-wrap:focus-within { border-color: var(--color-accent); }
+    .event-drawer__compose-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 10px 12px 32px;
       color: var(--color-text);
       font-family: var(--font-body);
-      font-size: 13px;
+      font-size: 12px;
       resize: vertical;
-      min-height: 60px;
+      min-height: 70px;
       outline: none;
+      display: block;
     }
-    .event-drawer__compose-input:focus { border-color: var(--color-accent); }
+    .event-drawer__compose-input::placeholder { color: var(--color-text-muted); }
+    .event-drawer__attach {
+      position: absolute;
+      bottom: 6px; left: 8px;
+      width: 20px; height: 20px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: transparent; border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      border-radius: 3px;
+      transition: color 0.12s, background 0.12s;
+    }
+    .event-drawer__attach:hover { color: var(--color-accent); background: var(--color-surface-hi); }
     .event-drawer__compose-row { display: flex; justify-content: flex-end; }
+    /* Load More — full-width outlined button at the bottom of the comments thread. */
+    .event-drawer__load-more {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid var(--color-accent);
+      border-radius: 100px;
+      color: var(--color-accent);
+      font-family: var(--font-label);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .event-drawer__load-more:hover { background: rgba(40,200,185,0.12); }
     .event-drawer__post {
       padding: 6px 18px;
       border: 1px solid var(--color-accent);
@@ -2353,12 +2817,12 @@
       font-size: 12px; color: var(--color-text-muted); font-style: italic;
     }
     .event-comment {
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid var(--color-border);
     }
     .event-comment:last-child { border-bottom: none; }
-    .event-comment__text { font-size: 13px; color: var(--color-text); line-height: 1.45; margin-bottom: 4px; }
-    .event-comment__meta { font-family: var(--font-label); font-size: 11px; color: var(--color-text-muted); }
+    .event-comment__text { font-size: 12px; color: var(--color-text); line-height: 1.45; margin-bottom: 3px; }
+    .event-comment__meta { font-family: var(--font-label); font-size: 10px; color: var(--color-text-muted); }
     .event-comment__meta strong { color: var(--color-text-dim); font-weight: 500; }
 
     /* Drawer body scroll */
@@ -2524,10 +2988,10 @@
           <div class="finder__scope-label">Search in</div>
           <div class="sidebar__filters" id="finder-filters">
             <button class="filter-toggle is-active" data-filter="Event">Event</button>
-            <button class="filter-toggle is-active" data-filter="Parm">Parm</button>
             <button class="filter-toggle is-active" data-filter="KTI">KTI</button>
             <button class="filter-toggle is-active" data-filter="KPV">KPV</button>
             <button class="filter-toggle is-active" data-filter="Phase">Phase</button>
+            <button class="filter-toggle is-active" data-filter="Parm">Parm</button>
           </div>
         </div>
         <div class="finder__results" id="finder-results"></div>
@@ -2589,7 +3053,9 @@
         <div class="module__body">
           <div class="graphs-scroll" id="graphs-scroll"></div>
           <button class="graph-drop-zone" id="add-empty-graph" style="margin: 0 8px 8px">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 2v10M2 7h10"/></svg>
+            <span class="graph-drop-zone__icon" aria-hidden="true">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            </span>
             Add a graph
           </button>
         </div>
@@ -2598,7 +3064,10 @@
       <!-- ── Module: Tabular ─────────────────────────────────────────── -->
       <section class="module" data-module="tabular">
         <header class="module__head">
-          <span class="module__title">Tabular</span>
+          <div class="module__tabs" data-module-tabs>
+            <button class="module__tab is-active" data-tab="tabular">Tabular</button>
+            <button class="module__tab" data-tab="status">Status</button>
+          </div>
           <div class="module__head-actions">
             <button class="module__drag" data-module-drag title="Drag to reorder">
               <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
@@ -2609,25 +3078,12 @@
           </div>
         </header>
         <div class="module__body">
-          <div class="tabular-scroll"><table class="tabular-table" id="tabular-table"></table></div>
-        </div>
-      </section>
-
-      <!-- ── Module: Status ──────────────────────────────────────────── -->
-      <section class="module" data-module="status">
-        <header class="module__head">
-          <span class="module__title">Status</span>
-          <div class="module__head-actions">
-            <button class="module__drag" data-module-drag title="Drag to reorder">
-              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
-            </button>
-            <button class="module__hide" data-module-hide title="Hide">
-              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
-            </button>
+          <div class="module__tab-pane is-active" data-tab-pane="tabular">
+            <div class="tabular-scroll"><table class="tabular-table" id="tabular-table"></table></div>
           </div>
-        </header>
-        <div class="module__body">
-          <div class="status-page" id="status-page"></div>
+          <div class="module__tab-pane" data-tab-pane="status">
+            <div class="status-page" id="status-page"></div>
+          </div>
         </div>
       </section>
 
@@ -2643,7 +3099,11 @@
             </button></div>
         </header>
         <div class="module__body">
-          <div class="visualizer-pane">
+          <div class="visualizer-pane" id="visualizer-pane">
+            <!-- Photographic placeholder — top-down helicopter still. Replaced by real WebGL later. -->
+            <div class="visualizer-placeholder">
+              <span class="visualizer-placeholder__label">Pending WebGL · live preview</span>
+            </div>
             <div class="v-readout">
               <div class="v-readout__row"><span>ALT AAL</span><strong id="v-alt">—</strong></div>
               <div class="v-readout__row"><span>IAS</span><strong id="v-ias">—</strong></div>
@@ -2651,16 +3111,6 @@
               <div class="v-readout__row"><span>HDG</span><strong id="v-hdg">—</strong></div>
               <div class="v-readout__row"><span>PITCH</span><strong id="v-pitch">—</strong></div>
               <div class="v-readout__row"><span>ROLL</span><strong id="v-roll">—</strong></div>
-            </div>
-            <div class="visualizer-placeholder">
-              <svg class="visualizer-placeholder__aircraft" viewBox="0 0 64 64" fill="white">
-                <path d="M32 4L20 36H28V60L32 58L36 60V36H44L32 4Z" opacity="0.9"/>
-                <path d="M10 30L28 34V28L10 24V30Z" opacity="0.5"/>
-                <path d="M54 30L36 34V28L54 24V30Z" opacity="0.5"/>
-                <path d="M20 54L28 52V56L20 58V54Z" opacity="0.3"/>
-                <path d="M44 54L36 52V56L44 58V54Z" opacity="0.3"/>
-              </svg>
-              <span class="visualizer-placeholder__label">3D Visualizer · pending WebGL integration</span>
             </div>
           </div>
         </div>
@@ -2679,12 +3129,18 @@
         </header>
         <div class="module__body">
           <div class="map-pane">
-            <svg id="map-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
-              <path id="map-track" class="map-track" d=""/>
-              <path id="map-track-flown" class="map-track-flown" d=""/>
-              <g id="map-events"></g>
-              <circle id="map-current" class="map-current" cx="0" cy="0" r="4"/>
-            </svg>
+            <!-- Photographic map placeholder. Replaced by a real tile provider later.
+                 Viewport wraps the image so it can be transformed (scale + translate)
+                 for zoom and pan without affecting layout. -->
+            <div class="map-viewport" id="map-viewport">
+              <img class="map-image" id="map-image" src="assets/map.png" alt="Map preview" draggable="false"/>
+            </div>
+            <div class="map-controls" role="group" aria-label="Map zoom">
+              <button data-map-zoom="in"    title="Zoom in (+)"  aria-label="Zoom in">+</button>
+              <button data-map-zoom="out"   title="Zoom out (−)" aria-label="Zoom out">−</button>
+              <button data-map-zoom="reset" title="Reset view"   aria-label="Reset view">⤾</button>
+            </div>
+            <span class="map-watermark">Pending map provider · live preview</span>
           </div>
         </div>
       </section>
@@ -3039,10 +3495,11 @@ function renderTimeline() {
     m.dataset.eventId = ev.id;
     m.style.left = (ev.pct*100) + "%";
     m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
+    // Pin glyph — per Figma 5221:13079. Map-pin balloon with a 4×4 inner dot.
     m.innerHTML = `
-      <svg viewBox="0 0 14 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7 23.5 L1.5 11 A5.5 5.5 0 1 1 12.5 11 Z" fill="${fill}" stroke="#021C25" stroke-width="0.8"/>
-        <circle cx="7" cy="8" r="2.2" fill="#021C25"/>
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 22 C 12 22 4 14.5 4 10 A 8 8 0 1 1 20 10 C 20 14.5 12 22 12 22 Z" fill="${fill}"/>
+        <circle cx="12" cy="9.5" r="3" fill="#021C25"/>
       </svg>`;
     m.addEventListener("click", e => { e.stopPropagation(); openEventPopover(ev.id, m); });
     track.insertBefore(m, head);
@@ -3072,28 +3529,6 @@ function renderFinder() {
       },
     })), "Event"));
   }
-  if (filters.has("Parm")) {
-    // Map: pid -> [graphIdx, ...]   so we can count usages and highlight on click
-    const onGraph = new Map();
-    GRAPHS.forEach((g, idx) => g.params.forEach(pid => {
-      if (!onGraph.has(pid)) onGraph.set(pid, []);
-      onGraph.get(pid).push(idx);
-    }));
-    const list = Object.entries(PARAMETERS).filter(([id,p])=>matches(p.name)).map(([id,p]) => {
-      const usages = onGraph.get(id) || [];
-      const isOn = usages.length > 0;
-      return {
-        label: p.name,
-        meta: isOn ? `on ${usages.length} graph${usages.length>1?"s":""}` : p.units,
-        // Stable per-parameter color — matches what shows up on the graphs
-        color: colorForParam(id),
-        className: isOn ? "is-on-graph" : "is-addable",
-        title: isOn ? "Click to highlight charts using this parameter" : "Click to add as a new graph",
-        onClick: () => isOn ? highlightGraphsWithParam(id, usages) : addGraphForParam(id),
-      };
-    });
-    if (list.length) root.appendChild(group("Parameters", list, "Parm"));
-  }
   if (filters.has("KTI")) {
     const ktis = [
       {label:"Liftoff",  pct:0.085}, {label:"Top of Climb", pct:0.22},
@@ -3121,6 +3556,29 @@ function renderFinder() {
       label:p.name, meta:pctToTime(p.startPct), color:"#3A6478",
       onClick: () => seekTo(p.startPct),
     })), "Phase"));
+  }
+  // Parameters last — long list, gets the scrollable tail of the finder.
+  if (filters.has("Parm")) {
+    // Map: pid -> [graphIdx, ...]   so we can count usages and highlight on click
+    const onGraph = new Map();
+    GRAPHS.forEach((g, idx) => g.params.forEach(pid => {
+      if (!onGraph.has(pid)) onGraph.set(pid, []);
+      onGraph.get(pid).push(idx);
+    }));
+    const list = Object.entries(PARAMETERS).filter(([id,p])=>matches(p.name)).map(([id,p]) => {
+      const usages = onGraph.get(id) || [];
+      const isOn = usages.length > 0;
+      return {
+        label: p.name,
+        meta: isOn ? `on ${usages.length} graph${usages.length>1?"s":""}` : p.units,
+        // Stable per-parameter color — matches what shows up on the graphs
+        color: colorForParam(id),
+        className: isOn ? "is-on-graph" : "is-addable",
+        title: isOn ? "Click to highlight charts using this parameter" : "Click to add as a new graph",
+        onClick: () => isOn ? highlightGraphsWithParam(id, usages) : addGraphForParam(id),
+      };
+    });
+    if (list.length) root.appendChild(group("Parameters", list, "Parm"));
   }
 
   function group(label, items, filterKey){
@@ -3571,14 +4029,42 @@ function renderTabular() {
   const body = el("tbody"); body.id = "tabular-body";
   // sample every Nth row to keep table reasonable
   const step = 4;
+  // Map each rendered row to the highest-severity event that lands within ±step/2 samples.
+  // Highest severity wins so a Level-3 event isn't masked by a coincident Level-1.
+  const eventByRow = {};
+  FLIGHT.events.forEach(ev => {
+    const evIdx = Math.round(ev.pct * (N-1));
+    const rowI = Math.round(evIdx / step) * step;
+    if (rowI < 0 || rowI >= N) return;
+    if (!eventByRow[rowI] || ev.level > eventByRow[rowI].level) eventByRow[rowI] = ev;
+  });
   for (let i=0; i<N; i+=step) {
     const tr = el("tr");
     tr.dataset.sampleIdx = i;
-    tr.appendChild(el("td", null, pctToTime(i/(N-1))));
+    tr.dataset.pct = i/(N-1);
+    const ev = eventByRow[i];
+    const timeTd = el("td", null, pctToTime(i/(N-1)));
+    if (ev) {
+      tr.dataset.eventId = ev.id;
+      tr.dataset.eventLevel = ev.level;
+      tr.classList.add("has-event");
+      const marker = document.createElement("span");
+      marker.className = "tabular-row-marker";
+      marker.dataset.level = ev.level;
+      marker.title = `${ev.code} · L${ev.level}`;
+      timeTd.prepend(marker);
+    }
+    tr.appendChild(timeTd);
     params.forEach(p => tr.appendChild(el("td", null, p.series[i].toFixed(p.decimals))));
     body.appendChild(tr);
   }
   t.appendChild(body);
+  // Click anywhere in a row to seek the timeline to that timestamp.
+  body.addEventListener("click", e => {
+    const tr = e.target.closest("tr");
+    if (!tr || !tr.dataset.pct) return;
+    seekTo(+tr.dataset.pct);
+  });
 }
 
 /* — Status page (hero · facts · events · approaches) — */
@@ -3593,40 +4079,35 @@ function renderStatus() {
   const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
 
   root.innerHTML = `
-    <!-- Hero: severity verdict — Status owns judgment, not identification.
-         Flight ID, aircraft, route and duration live in the slide-down strip
-         above the workspace. -->
+    <!-- Hero: just the severity counts. The verdict sentence was removed — three
+         stat blocks tell the same story without editorial framing. Border colour
+         still reflects the top severity present, so the urgency cue stays. -->
     <section class="status-hero status-hero--level-${top}">
-      <div class="status-hero__verdict">${verdict}</div>
-      <div class="status-hero__counts">
-        <span class="status-count level-3"><b>${counts[3]}</b> · L3</span>
-        <span class="status-count level-2"><b>${counts[2]}</b> · L2</span>
-        <span class="status-count level-1"><b>${counts[1]}</b> · L1</span>
-      </div>
+      <div class="status-count level-3"><b>${counts[3]}</b><span>L3</span></div>
+      <div class="status-count level-2"><b>${counts[2]}</b><span>L2</span></div>
+      <div class="status-count level-1"><b>${counts[1]}</b><span>L1</span></div>
     </section>
 
-    <!-- Events table: detail -->
+    <!-- Events: compact list (chronological, severity pill leading each row).
+         Replaces the 6-column table that couldn't survive the narrow Tabular slot. -->
     <section class="status-section">
       <h3 class="status-section__title">Events <span class="status-section__count">${FLIGHT.events.length}</span></h3>
-      <table class="status-table">
-        <thead><tr>
-          <th>Time</th><th>Phase</th><th>Event</th>
-          <th class="status-table__sev">L</th>
-          <th class="status-table__num">Value</th>
-          <th class="status-table__num">Threshold</th>
-        </tr></thead>
-        <tbody>
-          ${FLIGHT.events.map(ev => `
-            <tr data-status-event="${ev.id}" data-pct="${ev.pct}">
-              <td><span class="status-table__time">${pctToTime(ev.pct)}</span></td>
-              <td>${ev.phase}</td>
-              <td>${ev.name}</td>
-              <td class="status-table__sev"><span class="sev-pill level-${ev.level}">L${ev.level}</span></td>
-              <td class="status-table__num">${ev.value}</td>
-              <td class="status-table__num">${ev.threshold}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>
+      <div class="status-event-list">
+        ${FLIGHT.events.map(ev => `
+          <div class="status-event" data-status-event="${ev.id}" data-pct="${ev.pct}">
+            <span class="sev-pill level-${ev.level}">L${ev.level}</span>
+            <div class="status-event__head">
+              <div class="status-event__name">${ev.name}</div>
+              <div class="status-event__meta">
+                <span class="status-event__meta-time">${pctToTime(ev.pct)}</span> · ${ev.phase}
+              </div>
+            </div>
+            <div class="status-event__values">
+              <span class="status-event__value">${ev.value}</span>
+              <span class="status-event__threshold">≥ ${ev.threshold}</span>
+            </div>
+          </div>`).join("")}
+      </div>
     </section>
 
     <!-- Approaches: tertiary -->
@@ -3726,7 +4207,105 @@ function currentPhase(pct) {
 }
 
 /* — Map (synthetic flight path) — */
-function renderMap() {
+// Map module is now a static photo placeholder with pan/zoom. The synthetic SVG
+// path / event markers / aircraft arrow were removed — the photo's own track is
+// what the analyst sees while real tile-provider integration is pending. See
+// setupMapZoom() below for the interaction.
+function renderMap() { /* noop — kept so existing call site doesn't break */ }
+
+// Pan + zoom for the map photo. Keep state local in a closure so multiple modules
+// or later refactors can wrap this. Image transform model:
+//   transform: translate(tx, ty) scale(s) — origin (0,0), so zoom-at-cursor math
+//   is straightforward: tx_new = cx - (cx - tx) * (s_new / s).
+function setupMapZoom() {
+  const viewport = document.getElementById("map-viewport");
+  const img = document.getElementById("map-image");
+  if (!viewport || !img) return;
+
+  const MIN = 1, MAX = 8;
+  let s = 1, tx = 0, ty = 0;
+
+  function apply(animated = false) {
+    img.classList.toggle("is-animating", animated);
+    img.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${s.toFixed(3)})`;
+    if (animated) setTimeout(() => img.classList.remove("is-animating"), 200);
+  }
+  // Clamp pan so the image always covers the viewport (no white edges).
+  function clampPan() {
+    const vw = viewport.clientWidth, vh = viewport.clientHeight;
+    const iw = vw * s, ih = vh * s;
+    tx = Math.min(0, Math.max(vw - iw, tx));
+    ty = Math.min(0, Math.max(vh - ih, ty));
+  }
+  function zoomAt(cx, cy, factor, animated = false) {
+    const newS = Math.max(MIN, Math.min(MAX, s * factor));
+    if (newS === s) return;
+    const ratio = newS / s;
+    tx = cx - (cx - tx) * ratio;
+    ty = cy - (cy - ty) * ratio;
+    s = newS;
+    clampPan();
+    apply(animated);
+  }
+  function reset() {
+    s = 1; tx = 0; ty = 0;
+    apply(true);
+  }
+
+  // Wheel — zoom at cursor, no animation (continuous gesture).
+  viewport.addEventListener("wheel", e => {
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    zoomAt(cx, cy, factor, false);
+  }, { passive: false });
+
+  // Drag-to-pan — only meaningful when zoomed in (s > 1).
+  let dragging = null;
+  viewport.addEventListener("mousedown", e => {
+    if (s <= MIN) return;
+    e.preventDefault();
+    dragging = { x: e.clientX, y: e.clientY, tx0: tx, ty0: ty };
+    viewport.classList.add("is-panning");
+  });
+  window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    tx = dragging.tx0 + (e.clientX - dragging.x);
+    ty = dragging.ty0 + (e.clientY - dragging.y);
+    clampPan();
+    apply(false);
+  });
+  window.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = null;
+    viewport.classList.remove("is-panning");
+  });
+
+  // Double-click — quick zoom in (or out if Alt held).
+  viewport.addEventListener("dblclick", e => {
+    e.preventDefault();
+    const rect = viewport.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    zoomAt(cx, cy, e.altKey ? 1/2 : 2, true);
+  });
+
+  // Buttons — zoom centered on the viewport.
+  document.querySelectorAll("[data-map-zoom]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.mapZoom;
+      if (action === "reset") return reset();
+      const cx = viewport.clientWidth / 2;
+      const cy = viewport.clientHeight / 2;
+      zoomAt(cx, cy, action === "in" ? 1.5 : 1/1.5, true);
+    });
+  });
+}
+
+function __removed_renderMap_unused() {
+  const SVG_NS = "http://www.w3.org/2000/svg";
   // Build a smooth SVG path going across the viewport, with a curve in cruise
   const W = 500, H = 200;
   const samples = 60;
@@ -3742,6 +4321,76 @@ function renderMap() {
   $("#map-track").setAttribute("d", d);
   // store for later
   window.__mapPath = pathPts;
+
+  // ── Coastline — irregular landmass on the left (suggests Aberdeen coast) ──
+  // Hand-tuned path; rough headlands and a small bay around the takeoff point.
+  const coastD = "M 0,-10 L 0,210 L 22,210 L 28,190 L 24,168 L 36,150 L 30,128 L 42,110 L 38,86 L 50,70 L 44,52 L 56,34 L 48,16 L 60,-2 L 60,-10 Z";
+  $("#map-coast").setAttribute("d", coastD);
+  // Soft cast shadow slightly offset right of the coast
+  const shadowD = "M 22,210 L 28,190 L 24,168 L 36,150 L 30,128 L 42,110 L 38,86 L 50,70 L 44,52 L 56,34 L 48,16 L 60,-2 L 64,-2 L 56,18 L 64,36 L 52,54 L 58,72 L 46,90 L 50,114 L 38,132 L 44,154 L 32,172 L 36,194 L 30,210 Z";
+  $("#map-coast-shadow").setAttribute("d", shadowD);
+
+  // ── Lat/lon grid — light reference lines + edge labels ──
+  const grid = $("#map-grid");
+  grid.innerHTML = "";
+  const gridX = [100, 200, 300, 400];
+  const gridY = [50, 100, 150];
+  gridX.forEach(x => {
+    const l = document.createElementNS(SVG_NS, "line");
+    l.setAttribute("x1", x); l.setAttribute("y1", 0);
+    l.setAttribute("x2", x); l.setAttribute("y2", 200);
+    grid.appendChild(l);
+  });
+  gridY.forEach(y => {
+    const l = document.createElementNS(SVG_NS, "line");
+    l.setAttribute("x1", 0); l.setAttribute("y1", y);
+    l.setAttribute("x2", 500); l.setAttribute("y2", y);
+    grid.appendChild(l);
+  });
+
+  // ── Origin + destination markers ──
+  const eps = $("#map-endpoints");
+  eps.innerHTML = "";
+  const [ox, oy] = pathPts[0];
+  const [dx, dy] = pathPts[pathPts.length - 1];
+  // Origin: airport — circle with cross + label "EGPD"
+  eps.insertAdjacentHTML("beforeend", `
+    <g transform="translate(${ox.toFixed(1)} ${oy.toFixed(1)})">
+      <circle class="map-endpoint__icon" r="4.5"/>
+      <line x1="-3" y1="0" x2="3" y2="0" stroke="rgba(255,255,255,0.7)" stroke-width="0.8"/>
+      <line x1="0" y1="-3" x2="0" y2="3" stroke="rgba(255,255,255,0.7)" stroke-width="0.8"/>
+      <text class="map-endpoint__label" x="7" y="2">EGPD</text>
+    </g>
+  `);
+  // Destination: oil platform — small square outline + label "ETAP-1"
+  eps.insertAdjacentHTML("beforeend", `
+    <g transform="translate(${dx.toFixed(1)} ${dy.toFixed(1)})">
+      <rect class="map-endpoint__icon" x="-4" y="-4" width="8" height="8"/>
+      <rect x="-2" y="-2" width="4" height="4" fill="rgba(255,255,255,0.7)"/>
+      <text class="map-endpoint__label" x="7" y="2">ETAP-1</text>
+    </g>
+  `);
+
+  // ── Static decorations: compass rose (top-right) + scale bar (bottom-left) ──
+  const decor = $("#map-decor");
+  decor.innerHTML = `
+    <!-- Compass rose: ring, N/S needles, label -->
+    <g transform="translate(470 24)">
+      <circle class="map-compass-ring" r="11"/>
+      <polygon class="map-compass-needle-n" points="0,-9 2.5,0 0,-2 -2.5,0"/>
+      <polygon class="map-compass-needle-s" points="0,9 2.5,0 0,2 -2.5,0"/>
+      <text x="0" y="-13" text-anchor="middle" font-size="6">N</text>
+    </g>
+    <!-- Scale bar: ~10 km equivalent (synthetic) -->
+    <g transform="translate(20 188)">
+      <line class="map-scale-bar" x1="0" y1="0" x2="40" y2="0"/>
+      <line class="map-scale-cap" x1="0"  y1="-3" x2="0"  y2="3"/>
+      <line class="map-scale-cap" x1="20" y1="-2" x2="20" y2="2"/>
+      <line class="map-scale-cap" x1="40" y1="-3" x2="40" y2="3"/>
+      <text x="0" y="-5" font-size="6">0</text>
+      <text x="40" y="-5" font-size="6" text-anchor="end">10 km</text>
+    </g>
+  `;
   // events
   const g = $("#map-events");
   g.innerHTML = "";
@@ -3786,11 +4435,27 @@ function update() {
     $$(`[data-legend-for="${pid}"]`).forEach(s => s.textContent = label);
   });
 
-  // tabular row highlight
+  // tabular row highlight + auto-scroll-to-current
+  let currentRow = null;
   $$("#tabular-body tr").forEach(tr => {
     const i = +tr.dataset.sampleIdx;
-    tr.classList.toggle("is-current", Math.abs(i - idx) < 4);
+    const isCurrent = Math.abs(i - idx) < 4;
+    tr.classList.toggle("is-current", isCurrent);
+    if (isCurrent) currentRow = tr;
   });
+  // Only scroll when the highlighted row is actually outside the visible viewport,
+  // so the analyst's manual scroll position isn't yanked away on every paint cycle.
+  if (currentRow) {
+    const scroller = currentRow.closest(".tabular-scroll");
+    if (scroller) {
+      const sr = scroller.getBoundingClientRect();
+      const rr = currentRow.getBoundingClientRect();
+      const headerH = 32; // sticky thead — don't scroll the row underneath it
+      if (rr.top < sr.top + headerH || rr.bottom > sr.bottom) {
+        currentRow.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+  }
 
   // 3D readout
   set("v-alt", PARAMETERS.altAal.series[idx].toFixed(0)+" ft");
@@ -3865,18 +4530,7 @@ function update() {
   set("dig-gs", Math.max(0, ias - 5).toFixed(0) + " kt");   // mock GS ≈ IAS − headwind
   set("dig-phase", currentPhase(pct));
 
-  // map current position + flown portion
-  if (window.__mapPath) {
-    const pts = window.__mapPath;
-    const f = pct * (pts.length-1);
-    const i0 = Math.floor(f), i1 = Math.min(pts.length-1, i0+1);
-    const u = f - i0;
-    const cx = pts[i0][0] + (pts[i1][0]-pts[i0][0])*u;
-    const cy = pts[i0][1] + (pts[i1][1]-pts[i0][1])*u;
-    const c = $("#map-current"); c.setAttribute("cx", cx); c.setAttribute("cy", cy);
-    const flown = pts.slice(0, i0+1).concat([[cx,cy]]);
-    $("#map-track-flown").setAttribute("d", flown.map((p,i)=>(i===0?"M":"L")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" "));
-  }
+  // Map module is a static photo placeholder — no live overlay to update.
 }
 
 function set(id, val){ const e = document.getElementById(id); if (e) e.textContent = val; }
@@ -3947,7 +4601,6 @@ function setupPlayback() {
 const MODULES = {
   graphs:  { title: "Graphs" },
   tabular: { title: "Tabular" },
-  status:  { title: "Status" },
   view3d:  { title: "3D View" },
   map:     { title: "Map" },
   pfd:     { title: "Primary Flight Display" },
@@ -3963,22 +4616,19 @@ const MODULES = {
    to the root split. */
 function makeDefaultTree() {
   return {
-    type:'split', dir:'h', weights:[60, 40],
+    type:'split', dir:'h', weights:[34, 33, 33],
     children:[
-      { type:'split', dir:'v', weights:[65, 35], children:[
+      { type:'split', dir:'v', weights:[60, 40], children:[
         { type:'leaf', module:'graphs' },
         { type:'leaf', module:'tabular' },
       ]},
-      { type:'split', dir:'v', weights:[33, 33, 33], children:[
-        { type:'split', dir:'h', weights:[50, 50], children:[
-          { type:'leaf', module:'status' },
-          { type:'leaf', module:'view3d' },
-        ]},
-        { type:'split', dir:'h', weights:[50, 50], children:[
-          { type:'leaf', module:'pfd' },
-          { type:'leaf', module:'engines' },
-        ]},
+      { type:'split', dir:'v', weights:[60, 40], children:[
+        { type:'leaf', module:'view3d' },
         { type:'leaf', module:'map' },
+      ]},
+      { type:'split', dir:'v', weights:[60, 40], children:[
+        { type:'leaf', module:'pfd' },
+        { type:'leaf', module:'engines' },
       ]},
     ]
   };
@@ -3990,7 +4640,7 @@ const BUILTIN_TEMPLATES = {
     type:'split', dir:'h', weights:[60, 40], children:[
       { type:'leaf', module:'graphs' },
       { type:'split', dir:'v', weights:[50, 50], children:[
-        { type:'leaf', module:'status' },
+        { type:'leaf', module:'tabular' },
         { type:'leaf', module:'view3d' },
       ]},
     ]
@@ -4010,6 +4660,13 @@ const BUILTIN_TEMPLATES = {
 };
 
 let LAYOUT = JSON.parse(JSON.stringify(BUILTIN_TEMPLATES["Default analyst layout"]));
+
+function seedLastPositions() {
+  Object.keys(MODULES).forEach(k => {
+    const p = findColRow(LAYOUT, k);
+    if (p) LAST_POSITION[k] = p;
+  });
+}
 let SAVED_LAYOUTS = {}; // user templates: {name: snapshot}
 
 /* ── Tree utilities ─────────────────────────────────────────────────────── */
@@ -4034,13 +4691,46 @@ function findLeafInTree(tree, moduleKey) {
 
 function collapseSingletonSplits(node) {
   if (!node || node.type !== 'split') return node;
+  // Recurse first
   node.children = node.children.map(collapseSingletonSplits);
-  // If any child is a single-child split, replace it with its only child
+  // Drop any empty split children (zero descendants -> nothing to render).
+  // Their weights go with them; remaining weights are renormalized so
+  // surviving siblings expand to fill the freed space — no empty cells.
+  const keep = node.children
+    .map((c, i) => ({ c, w: node.weights[i] }))
+    .filter(({ c }) => !(c && c.type === 'split' && c.children.length === 0));
+  node.children = keep.map(k => k.c);
+  node.weights  = keep.map(k => k.w);
+  const total = node.weights.reduce((a,b) => a+b, 0) || 1;
+  node.weights = node.weights.map(w => (w / total) * 100);
+  // Replace any single-child split child with its only child
   node.children = node.children.map(c => (c.type === 'split' && c.children.length === 1) ? c.children[0] : c);
   return node;
 }
 
+// Last-known (column, row) of every module, used to restore the original
+// slot when a hidden module is toggled back on. Updated whenever a module is
+// removed; seeded from the initial layout below.
+const LAST_POSITION = {};
+function findColRow(layout, key) {
+  if (!layout || layout.type !== 'split' || layout.dir !== 'h') return null;
+  for (let c = 0; c < layout.children.length; c++) {
+    const col = layout.children[c];
+    if (col.type === 'leaf') {
+      if (col.module === key) return { col: c, row: 0 };
+    } else if (col.type === 'split' && col.dir === 'v') {
+      for (let r = 0; r < col.children.length; r++) {
+        const n = col.children[r];
+        if (n.type === 'leaf' && n.module === key) return { col: c, row: r };
+      }
+    }
+  }
+  return null;
+}
+
 function removeModuleFromTree(moduleKey) {
+  const home = findColRow(LAYOUT, moduleKey);
+  if (home) LAST_POSITION[moduleKey] = home;
   const found = findLeafInTree(LAYOUT, moduleKey);
   if (!found || !found.parent) return; // can't remove the root by itself
   const p = found.parent;
@@ -4049,18 +4739,44 @@ function removeModuleFromTree(moduleKey) {
   const total = p.weights.reduce((a,b) => a+b, 0) || 1;
   p.weights = p.weights.map(w => (w / total) * 100);
   LAYOUT = collapseSingletonSplits(LAYOUT);
-  // If LAYOUT itself collapsed to a leaf with no parent reference, ok
 }
 
 function addModuleToTree(moduleKey) {
   const newLeaf = { type:'leaf', module: moduleKey };
-  // Append to root: if root is a split, push as a new child; if a leaf, promote.
-  if (LAYOUT.type === 'leaf') {
-    LAYOUT = { type:'split', dir:'h', weights:[60, 40], children:[LAYOUT, newLeaf] };
-  } else {
-    LAYOUT.children.push(newLeaf);
+  const home = LAST_POSITION[moduleKey];
+  // Fallback: no recorded home, or root isn't a column-row H split — append.
+  if (!home || LAYOUT.type === 'leaf' || LAYOUT.dir !== 'h') {
+    if (LAYOUT.type === 'leaf') {
+      LAYOUT = { type:'split', dir:'h', weights:[60, 40], children:[LAYOUT, newLeaf] };
+    } else {
+      LAYOUT.children.push(newLeaf);
+      const equal = 100 / LAYOUT.children.length;
+      LAYOUT.weights = LAYOUT.children.map(() => equal);
+    }
+    return;
+  }
+  // Restore at home column / row.
+  if (home.col >= LAYOUT.children.length) {
+    LAYOUT.children.push({ type:'split', dir:'v', weights:[100], children:[newLeaf] });
     const equal = 100 / LAYOUT.children.length;
     LAYOUT.weights = LAYOUT.children.map(() => equal);
+    return;
+  }
+  const col = LAYOUT.children[home.col];
+  if (col.type === 'leaf') {
+    // Column collapsed to a single leaf — re-wrap as a V split with the
+    // newcomer at its home row.
+    const children = home.row === 0 ? [newLeaf, col] : [col, newLeaf];
+    LAYOUT.children[home.col] = { type:'split', dir:'v', weights:[60, 40], children };
+  } else if (col.type === 'split' && col.dir === 'v') {
+    const insertAt = Math.min(home.row, col.children.length);
+    col.children.splice(insertAt, 0, newLeaf);
+    const equal = 100 / col.children.length;
+    col.weights = col.children.map(() => equal);
+  } else {
+    col.children.push(newLeaf);
+    const equal = 100 / col.children.length;
+    col.weights = col.children.map(() => equal);
   }
 }
 
@@ -4069,6 +4785,121 @@ function swapModulesInTree(a, b) {
   const lb = findLeafInTree(LAYOUT, b)?.node;
   if (!la || !lb) return;
   const tmp = la.module; la.module = lb.module; lb.module = tmp;
+}
+
+// Move `sourceKey` next to `targetKey` on the given edge ('top'|'bottom'|'left'|'right').
+// Re-uses the target's parent split when the direction matches; otherwise wraps
+// the target in a new split of the needed direction.
+function moveModuleToEdge(sourceKey, targetKey, edge) {
+  if (sourceKey === targetKey) return;
+  // 1. Detach the source leaf from wherever it currently lives.
+  const src = findLeafInTree(LAYOUT, sourceKey);
+  if (!src || !src.parent) return;
+  src.parent.children.splice(src.idx, 1);
+  src.parent.weights.splice(src.idx, 1);
+  if (src.parent.weights.length) {
+    const t = src.parent.weights.reduce((a,b)=>a+b,0) || 1;
+    src.parent.weights = src.parent.weights.map(w => (w/t)*100);
+  }
+  LAYOUT = collapseSingletonSplits(LAYOUT);
+
+  // 2. Insert next to the target.
+  const newLeaf = { type:'leaf', module: sourceKey };
+  const wantDir = (edge === 'top' || edge === 'bottom') ? 'v' : 'h';
+  const after   = (edge === 'bottom' || edge === 'right');
+  const tgt = findLeafInTree(LAYOUT, targetKey);
+  if (!tgt) { addModuleToTree(sourceKey); return; }
+  if (tgt.parent && tgt.parent.dir === wantDir) {
+    const at = after ? tgt.idx + 1 : tgt.idx;
+    tgt.parent.children.splice(at, 0, newLeaf);
+    const equal = 100 / tgt.parent.children.length;
+    tgt.parent.weights = tgt.parent.children.map(() => equal);
+  } else if (tgt.parent) {
+    // Wrap the target inside a new split of the wanted direction.
+    tgt.parent.children[tgt.idx] = {
+      type:'split', dir:wantDir, weights:[50, 50],
+      children: after ? [tgt.node, newLeaf] : [newLeaf, tgt.node],
+    };
+  } else {
+    // Target is the root — promote.
+    LAYOUT = {
+      type:'split', dir:wantDir, weights:[50, 50],
+      children: after ? [tgt.node, newLeaf] : [newLeaf, tgt.node],
+    };
+  }
+}
+
+// Insert `sourceKey` as a new sibling inside `splitNode` at position `insertIdx`
+// (e.g. children [A, B, C] + insertIdx 1 → [A, source, B, C]).
+// Used by gap-drop: dragging onto a divider/gap drops the module between siblings.
+// Note: `splitNode` is a live reference into LAYOUT — must be looked up BEFORE
+// the source is detached, because collapseSingletonSplits may rewrite the tree.
+function insertModuleAtSiblingGap(sourceKey, splitNode, insertIdx) {
+  if (!splitNode || splitNode.type !== 'split') return;
+  // Re-resolve the split path to survive any rewrites during detach.
+  // Strategy: tag the split node, detach source, find the tagged node, untag, insert.
+  splitNode.__gapTarget = true;
+  const src = findLeafInTree(LAYOUT, sourceKey);
+  if (!src || !src.parent) { delete splitNode.__gapTarget; return; }
+  src.parent.children.splice(src.idx, 1);
+  src.parent.weights.splice(src.idx, 1);
+  if (src.parent.weights.length) {
+    const t = src.parent.weights.reduce((a,b)=>a+b,0) || 1;
+    src.parent.weights = src.parent.weights.map(w => (w/t)*100);
+  }
+  LAYOUT = collapseSingletonSplits(LAYOUT);
+  // Locate the (possibly re-rooted) target split.
+  const liveSplit = findTaggedSplit(LAYOUT, '__gapTarget');
+  if (!liveSplit) { delete splitNode.__gapTarget; addModuleToTree(sourceKey); return; }
+  delete liveSplit.__gapTarget;
+  const at = Math.max(0, Math.min(insertIdx, liveSplit.children.length));
+  liveSplit.children.splice(at, 0, { type:'leaf', module: sourceKey });
+  const equal = 100 / liveSplit.children.length;
+  liveSplit.weights = liveSplit.children.map(() => equal);
+  LAYOUT = collapseSingletonSplits(LAYOUT);
+}
+function findTaggedSplit(node, tag) {
+  if (!node || node.type !== 'split') return null;
+  if (node[tag]) return node;
+  for (const c of node.children) {
+    const found = findTaggedSplit(c, tag);
+    if (found) return found;
+  }
+  return null;
+}
+
+// Insert `sourceKey` as a new outermost sibling at the mosaic perimeter.
+// `side` is 'top'|'bottom'|'left'|'right'. If LAYOUT root is a split whose
+// direction matches the perimeter axis, we just splice into it at the right end.
+// Otherwise we wrap the current root in a new outer split.
+function insertModuleAtPerimeter(sourceKey, side) {
+  // 1. Detach source from current spot.
+  const src = findLeafInTree(LAYOUT, sourceKey);
+  if (!src || !src.parent) return;
+  src.parent.children.splice(src.idx, 1);
+  src.parent.weights.splice(src.idx, 1);
+  if (src.parent.weights.length) {
+    const t = src.parent.weights.reduce((a,b)=>a+b,0) || 1;
+    src.parent.weights = src.parent.weights.map(w => (w/t)*100);
+  }
+  LAYOUT = collapseSingletonSplits(LAYOUT);
+
+  const newLeaf = { type:'leaf', module: sourceKey };
+  const wantDir = (side === 'top' || side === 'bottom') ? 'v' : 'h';
+  const after   = (side === 'bottom' || side === 'right');
+
+  if (LAYOUT.type === 'split' && LAYOUT.dir === wantDir) {
+    const at = after ? LAYOUT.children.length : 0;
+    LAYOUT.children.splice(at, 0, newLeaf);
+    const equal = 100 / LAYOUT.children.length;
+    LAYOUT.weights = LAYOUT.children.map(() => equal);
+  } else {
+    // Promote: wrap the current root inside a new outer split of wantDir.
+    LAYOUT = {
+      type:'split', dir:wantDir, weights:[50, 50],
+      children: after ? [LAYOUT, newLeaf] : [newLeaf, LAYOUT],
+    };
+  }
 }
 
 function getVisibleModules() { return listLeafModules(LAYOUT); }
@@ -4096,8 +4927,33 @@ function applyMosaic() {
   const visibleCount = listLeafModules(LAYOUT).length;
   mosaic.classList.toggle("mosaic--empty", visibleCount === 0);
   if (visibleCount > 0) renderTreeNode(LAYOUT, mosaic);
+  // After the panes exist, override flex on any pane whose module wants to fit
+  // its content height (PFD, Engines). Runs every render so drops/swaps re-apply.
+  applyFitContentSizing();
 
   renderModuleToggles();
+}
+
+// Modules whose pane should size to its content (height-axis only), instead of
+// claiming an equal share of the parent vertical split. The pixel value is the
+// total module height (header + content) — the post-render walker uses it as
+// `flex: 0 0 <px>` for any matching pane inside a v-split.
+const FIT_CONTENT_H = {
+  pfd:     400,
+  engines: 240,  // measured: header 39 + intrinsic body 199 + 2px breathing room
+};
+
+function applyFitContentSizing() {
+  document.querySelectorAll('#mosaic .mosaic-pane').forEach(pane => {
+    const mod = pane.querySelector(':scope > .module');
+    if (!mod) return;
+    const target = FIT_CONTENT_H[mod.dataset.module];
+    if (!target) return;
+    // Only fix the height axis — width inside an h-split scales with the column.
+    const parentSplit = pane.parentElement;
+    if (!parentSplit || !parentSplit.classList.contains('mosaic-split--v')) return;
+    pane.style.flex = `0 0 ${target}px`;
+  });
 }
 
 function renderTreeNode(node, container) {
@@ -4153,6 +5009,7 @@ function renderModuleToggles() {
 }
 
 function toggleModuleVisibility(key) {
+  pushLayoutUndo();
   if (getVisibleModules().includes(key)) removeModuleFromTree(key);
   else addModuleToTree(key);
   applyMosaic();
@@ -4280,6 +5137,9 @@ function setupMosaicResize() {
     const startB = splitNode.weights[idx + 1];
     const startSum = startA + startB;
 
+    // Snapshot for cmd-Z BEFORE any weight mutation.
+    pushLayoutUndo();
+
     divider.classList.add("is-active");
     document.body.style.cursor = isHorizontal ? "col-resize" : "row-resize";
     document.body.style.userSelect = "none";
@@ -4310,6 +5170,22 @@ function setupMosaicResize() {
   });
 }
 
+function setupModuleTabs() {
+  // Delegated tab switching for any module that has [data-module-tabs].
+  document.addEventListener("click", e => {
+    const tab = e.target.closest(".module__tab[data-tab]");
+    if (!tab) return;
+    const head = tab.closest(".module__head");
+    const mod  = tab.closest(".module");
+    if (!head || !mod) return;
+    const name = tab.dataset.tab;
+    head.querySelectorAll(".module__tab").forEach(t => t.classList.toggle("is-active", t === tab));
+    mod.querySelectorAll(":scope > .module__body > .module__tab-pane").forEach(p => {
+      p.classList.toggle("is-active", p.dataset.tabPane === name);
+    });
+  });
+}
+
 function setupMosaicReorder() {
   // Delegated drag — modules move between tree nodes on every render, so we
   // can't bind to individual handle elements (they'd be stale).
@@ -4321,20 +5197,143 @@ function setupMosaicReorder() {
     const sourceModule = handle.closest(".module");
     if (!sourceModule) return;
     const sourceKey = sourceModule.dataset.module;
-    let targetKey = null;
+    const mosaic = $("#mosaic");
+
+    // Drop state — communicated from onMove to onUp.
+    //   mode    : 'edge' | 'gap' | null   (swap removed — drag is repositioning, never trading)
+    //   target  : module key (edge), or { splitNode, insertIdx } (gap)
+    //   edge    : 'top' | 'bottom' | 'left' | 'right' when mode === 'edge'
+    let drop = { mode: null, target: null, edge: null };
+
     sourceModule.classList.add("is-dragging");
     document.body.style.cursor = "grabbing";
     document.body.style.userSelect = "none";
 
-    function onMove(ev) {
-      const el = document.elementFromPoint(ev.clientX, ev.clientY);
-      const m = el && el.closest && el.closest(".module");
-      document.querySelectorAll(".module").forEach(x => x.classList.remove("is-drag-target"));
-      if (m && m.dataset.module !== sourceKey && getVisibleModules().includes(m.dataset.module)) {
-        m.classList.add("is-drag-target");
-        targetKey = m.dataset.module;
+    // Single phantom element, lives inside #mosaic for the duration of the drag.
+    const phantom = document.createElement("div");
+    phantom.className = "mosaic-phantom";
+    mosaic.appendChild(phantom);
+
+    function hidePhantom() {
+      phantom.classList.remove("is-active");
+      drop = { mode: null, target: null, edge: null };
+    }
+    // Position phantom relative to #mosaic. `rectVp` is a viewport-space rect.
+    function showPhantomAt(rectVp) {
+      const m = mosaic.getBoundingClientRect();
+      phantom.style.left   = (rectVp.left - m.left) + "px";
+      phantom.style.top    = (rectVp.top  - m.top)  + "px";
+      phantom.style.width  = rectVp.width  + "px";
+      phantom.style.height = rectVp.height + "px";
+      phantom.classList.add("is-active");
+    }
+
+    // Whichever edge of the target is closest to the cursor — no dead-center swap zone.
+    // The entire module surface is insert-beside; only the closest edge differs.
+    function pickEdge(rect, x, y) {
+      const fx = (x - rect.left) / rect.width;
+      const fy = (y - rect.top)  / rect.height;
+      const d = { top: fy, bottom: 1 - fy, left: fx, right: 1 - fx };
+      return Object.keys(d).reduce((a,b) => d[a] <= d[b] ? a : b);
+    }
+
+    // Given a viewport-rect and an edge, compute the phantom's viewport-rect
+    // covering the half (top/bottom/left/right) the new pane will occupy.
+    function halfRect(rect, edge) {
+      const h = rect.height / 2, w = rect.width / 2;
+      if (edge === 'top')    return { left: rect.left,         top: rect.top,         width: rect.width, height: h };
+      if (edge === 'bottom') return { left: rect.left,         top: rect.top + h,     width: rect.width, height: h };
+      if (edge === 'left')   return { left: rect.left,         top: rect.top,         width: w,          height: rect.height };
+      if (edge === 'right')  return { left: rect.left + w,     top: rect.top,         width: w,          height: rect.height };
+      return rect;
+    }
+
+    // Gap hit-detection: cursor within ~12px of any divider counts.
+    // Returns { splitNode, insertIdx, rect } where rect is the phantom's viewport-rect,
+    // or null if no divider is in range. The phantom sits over the divider position
+    // and is sized to roughly the new pane's share of the parent split.
+    const GAP_PROX = 12;
+    function pickGap(x, y) {
+      const dividers = document.querySelectorAll(".mosaic-divider");
+      let best = null, bestDist = GAP_PROX + 1;
+      dividers.forEach(div => {
+        const r = div.getBoundingClientRect();
+        // Distance from cursor to the divider's line, on its perpendicular axis.
+        const isHoriz = div.classList.contains("mosaic-divider--h"); // h = vertical line between columns
+        const inSpan = isHoriz
+          ? (y >= r.top  - 2 && y <= r.bottom + 2)
+          : (x >= r.left - 2 && x <= r.right  + 2);
+        if (!inSpan) return;
+        const dist = isHoriz ? Math.abs(x - (r.left + r.width/2))
+                             : Math.abs(y - (r.top  + r.height/2));
+        if (dist < bestDist) { bestDist = dist; best = div; }
+      });
+      if (!best) return null;
+      const splitNode = best._splitNode;
+      const insertIdx = (+best.dataset.idx) + 1; // children[idx] | divider | children[idx+1]
+      // Phantom sized to the new pane's predicted share of the parent split.
+      const splitEl = best.parentElement;
+      const splitRect = splitEl.getBoundingClientRect();
+      const isHoriz = best.classList.contains("mosaic-divider--h");
+      const newShare = 1 / (splitNode.children.length + 1);
+      let rect;
+      if (isHoriz) {
+        const w = splitRect.width * newShare;
+        const cx = best.getBoundingClientRect().left + 0.5;
+        rect = { left: cx - w/2, top: splitRect.top, width: w, height: splitRect.height };
       } else {
-        targetKey = null;
+        const h = splitRect.height * newShare;
+        const cy = best.getBoundingClientRect().top + 0.5;
+        rect = { left: splitRect.left, top: cy - h/2, width: splitRect.width, height: h };
+      }
+      return { splitNode, insertIdx, rect };
+    }
+
+    // Perimeter hit-detection: cursor within 16px of #mosaic's outer edge AND not over a module.
+    const PERIM_PROX = 16;
+    function pickPerimeter(x, y) {
+      const m = mosaic.getBoundingClientRect();
+      if (x < m.left - 2 || x > m.right + 2 || y < m.top - 2 || y > m.bottom + 2) return null;
+      const dTop = y - m.top, dBot = m.bottom - y, dL = x - m.left, dR = m.right - x;
+      const which = { top: dTop, bottom: dBot, left: dL, right: dR };
+      const side = Object.keys(which).reduce((a,b) => which[a] <= which[b] ? a : b);
+      if (which[side] > PERIM_PROX) return null;
+      // Predict new pane's share at the root level.
+      const rootChildren = (LAYOUT.type === 'split') ? LAYOUT.children.length : 1;
+      const share = 1 / (rootChildren + 1);
+      let rect;
+      if (side === 'top')         rect = { left: m.left, top: m.top,                width: m.width, height: m.height * share };
+      else if (side === 'bottom') rect = { left: m.left, top: m.bottom - m.height*share, width: m.width, height: m.height * share };
+      else if (side === 'left')   rect = { left: m.left, top: m.top, width: m.width * share, height: m.height };
+      else                        rect = { left: m.right - m.width*share, top: m.top, width: m.width * share, height: m.height };
+      return { side, rect };
+    }
+
+    function onMove(ev) {
+      // Priority: perimeter > gap > module-edge. Perimeter wins because it's the
+      // only way to add an outermost column/row; gap is checked before module
+      // because dividers visually live "between" modules and feel separate.
+      const perim = pickPerimeter(ev.clientX, ev.clientY);
+      if (perim) {
+        drop = { mode: 'perimeter', target: perim.side, edge: null };
+        showPhantomAt(perim.rect);
+        return;
+      }
+      const gap = pickGap(ev.clientX, ev.clientY);
+      if (gap) {
+        drop = { mode: 'gap', target: { splitNode: gap.splitNode, insertIdx: gap.insertIdx }, edge: null };
+        showPhantomAt(gap.rect);
+        return;
+      }
+      const el = document.elementFromPoint(ev.clientX, ev.clientY);
+      const mod = el && el.closest && el.closest(".module");
+      if (mod && mod.dataset.module !== sourceKey && getVisibleModules().includes(mod.dataset.module)) {
+        const rect = mod.getBoundingClientRect();
+        const edge = pickEdge(rect, ev.clientX, ev.clientY);
+        drop = { mode: 'edge', target: mod.dataset.module, edge };
+        showPhantomAt(halfRect(rect, edge));
+      } else {
+        hidePhantom();
       }
     }
     function onUp() {
@@ -4342,12 +5341,20 @@ function setupMosaicReorder() {
       document.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      document.querySelectorAll(".module").forEach(x => {
-        x.classList.remove("is-drag-target");
-        x.classList.remove("is-dragging");
-      });
-      if (targetKey && targetKey !== sourceKey) {
-        swapModulesInTree(sourceKey, targetKey);
+      sourceModule.classList.remove("is-dragging");
+      const committed = drop;
+      phantom.remove();
+      if (committed.mode === 'edge' && committed.target && committed.target !== sourceKey) {
+        pushLayoutUndo();
+        moveModuleToEdge(sourceKey, committed.target, committed.edge);
+        applyMosaic();
+      } else if (committed.mode === 'gap' && committed.target) {
+        pushLayoutUndo();
+        insertModuleAtSiblingGap(sourceKey, committed.target.splitNode, committed.target.insertIdx);
+        applyMosaic();
+      } else if (committed.mode === 'perimeter' && committed.target) {
+        pushLayoutUndo();
+        insertModuleAtPerimeter(sourceKey, committed.target);
         applyMosaic();
       }
     }
@@ -4371,8 +5378,10 @@ function renderTemplatesList() {
       const name = btn.dataset.loadTemplate;
       const snap = btn.dataset.user ? SAVED_LAYOUTS[name] : BUILTIN_TEMPLATES[name];
       if (!snap) return;
+      pushLayoutUndo();
       // Replace the whole tree (not Object.assign — we're swapping the root)
       LAYOUT = JSON.parse(JSON.stringify(snap));
+      seedLastPositions();
       applyMosaic();
     });
   });
@@ -4383,9 +5392,6 @@ function renderTemplatesList() {
     renderTemplatesList();
   });
 }
-
-// Module tabs removed in mosaic refactor — kept as a no-op so boot doesn't break.
-function setupModuleTabs() {}
 
 // No-ops — 3D and Map are now separate modules in the mosaic (no more sub-tabs).
 function setupRightTabs() {}
@@ -4658,47 +5664,123 @@ function closeEventDrawer() {
   $("#event-drawer").setAttribute("aria-hidden", "true");
 }
 
+// Derive plausible L1/L2/L3 threshold values for the Specifications tooltip.
+// The event stores its own trigger threshold; we scale it around the event's level
+// so the displayed levels read as escalating severity. Mock-only — real data would
+// carry explicit per-level thresholds.
+function buildSpecThresholds(ev) {
+  const m = String(ev.threshold || "").match(/^(-?[\d.]+)\s*(.*)$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  const unit = (m[2] || "").trim();
+  const multByAnchor = {
+    1: [1.0, 1.17, 1.33],
+    2: [0.85, 1.0, 1.15],
+    3: [0.70, 0.85, 1.0]
+  };
+  const mult = multByAnchor[ev.level] || [0.7, 0.85, 1.0];
+  const fmt = v => {
+    const abs = Math.abs(v);
+    const str = abs >= 10 ? Math.round(v).toString() : v.toFixed(1).replace(/\.0$/, "");
+    return unit ? `${str} ${unit}` : str;
+  };
+  return [1, 2, 3].map((lvl, i) => ({ level: lvl, value: fmt(n * mult[i]) }));
+}
+
 function renderEventDrawer() {
   const ev = FLIGHT.events.find(e => e.id === STATE.activeEventId);
   if (!ev) return;
   const drawer = $("#event-drawer");
   const td = pctToTime(ev.pct);
 
+  // Date-time in the card uses real takeoff date + event-relative time.
+  const dateTimeStr = `${FLIGHT.takeoffDate} ${td}Z`;
+  // Show "Load More" only if there are enough comments to justify pagination.
+  const SHOW_LOAD_MORE_THRESHOLD = 2;
+
   drawer.innerHTML = `
     <header class="event-drawer__head">
-      <div class="event-drawer__id">#${ev.id}</div>
-      <h2 class="event-drawer__title">${ev.name} <small>(at ${td})</small></h2>
+      <div class="event-drawer__head-text">
+        <div class="event-drawer__id">${ev.id}</div>
+        <h2 class="event-drawer__title">${ev.name}</h2>
+        <span class="sev-pill sev-pill--lg level-${ev.level}">Level ${ev.level}</span>
+      </div>
       <button class="event-drawer__close" title="Close" data-close>×</button>
     </header>
 
+    <!-- Flight context strip — kept in full per spec; analyst-share-screenshot rationale. -->
     <section class="event-drawer__meta">
       <div><span class="kv-label">Flight</span><span class="kv-value">${FLIGHT.id}</span></div>
-      <div><span class="kv-label">Reference</span><span class="kv-value">${ev.reference}</span></div>
-      <div><span class="kv-label">Aircraft</span><span class="kv-value">${FLIGHT.aircraft}</span></div>
-      <div><span class="kv-label">Phase</span><span class="kv-value">${ev.phase}</span></div>
-      <div><span class="kv-label">Origin</span><span class="kv-value">${FLIGHT.origin}</span></div>
-      <div><span class="kv-label">Destination</span><span class="kv-value">${FLIGHT.destination}</span></div>
+      <div>
+        <span class="kv-label">Reference</span>
+        <span class="kv-value">${ev.reference} <button class="kv-icon-btn" title="Copy reference" data-copy="${ev.reference}">⊖</button></span>
+      </div>
+      <div>
+        <span class="kv-label">Aircraft</span>
+        <span class="kv-value">${FLIGHT.aircraft} <button class="kv-icon-btn" title="Aircraft details">ⓘ</button></span>
+      </div>
+      <div><span class="kv-label">Flight type</span><span class="kv-value">${FLIGHT.flightType}</span></div>
+      <div class="event-drawer__meta-wide">
+        <span class="kv-label">Takeoff</span>
+        <span class="kv-value">${FLIGHT.takeoffDate} ${FLIGHT.startStr}Z / day</span>
+        <span class="kv-sub">${FLIGHT.origin}</span>
+      </div>
+      <div class="event-drawer__meta-wide">
+        <span class="kv-label">Landing</span>
+        <span class="kv-value">${FLIGHT.landingDate} ${FLIGHT.endStr}Z / day</span>
+        <span class="kv-sub">${FLIGHT.destination}</span>
+      </div>
     </section>
 
     <section class="event-drawer__card">
+      <!-- Card head: 3×2 grid of values, full-width. Severity badge lives in the
+           drawer header now; the event code already appears in the values grid. -->
       <div class="event-drawer__card-head">
-        <div>
-          <div class="event-drawer__code">${ev.code}</div>
-          <span class="sev-pill level-${ev.level}">L${ev.level}</span>
-        </div>
         <div class="event-drawer__card-values">
-          <div><span class="kv-label">Value</span><span class="kv-value">${ev.value}</span></div>
-          <div><span class="kv-label">Threshold</span><span class="kv-value">${ev.threshold}</span></div>
-          <div><span class="kv-label">Time</span><span class="kv-value">${td}</span></div>
-          <div><span class="kv-label">Status By</span><span class="kv-value">${ev.statusBy || "—"}</span></div>
-          <div><span class="kv-label">Validity By</span><span class="kv-value">${ev.validityBy || "—"}</span></div>
+          <div>
+            <span class="kv-label">Value</span>
+            <span class="kv-value">${ev.value}
+              <span class="kv-chip" tabindex="0" aria-describedby="spec-tooltip-${ev.id}">Specifications
+                <div class="spec-tooltip" role="tooltip" id="spec-tooltip-${ev.id}">
+                  <div class="spec-tooltip__head">
+                    <div class="spec-tooltip__title">${escapeHtml(ev.name)}</div>
+                    <div class="spec-tooltip__code">${ev.reference || ev.code}</div>
+                  </div>
+                  <div class="spec-tooltip__list">
+                    ${(buildSpecThresholds(ev) || []).map(t => `
+                      <div class="spec-tooltip__row">
+                        <span class="spec-tooltip__badge spec-tooltip__badge--${t.level}">Level ${t.level}</span>
+                        <span class="spec-tooltip__value">≥ ${t.value}</span>
+                      </div>
+                    `).join("")}
+                  </div>
+                </div>
+              </span>
+            </span>
+          </div>
+          <div>
+            <span class="kv-label">Date-time</span>
+            <span class="kv-value">${dateTimeStr}</span>
+          </div>
+          <div>
+            <span class="kv-label">Event ID</span>
+            <span class="kv-value">${ev.id} <button class="kv-icon-btn" title="Copy event ID" data-copy="${ev.id}">⊖</button></span>
+          </div>
+          <div>
+            <span class="kv-label">Code</span>
+            <span class="kv-value">${ev.code}</span>
+          </div>
+          <div>
+            <span class="kv-label">Status by</span>
+            <span class="kv-value">${ev.statusBy || "—"}</span>
+          </div>
+          <div>
+            <span class="kv-label">Validity by</span>
+            <span class="kv-value">${ev.validityBy || "—"}</span>
+          </div>
         </div>
       </div>
       <div class="event-drawer__card-actions">
-        <button class="ev-btn ev-btn--simulate" data-simulate>
-          <span class="event-summary__simulate-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></span>
-          Jump to moment
-        </button>
         <div class="ev-pill ev-pill--validity" data-validity-pill>
           ${VALIDITY_LABELS[ev.validity]} <span class="ev-pill__caret">▾</span>
         </div>
@@ -4710,13 +5792,18 @@ function renderEventDrawer() {
 
     <section class="event-drawer__section">
       <div class="event-drawer__section-label">Event description</div>
-      <div class="event-drawer__desc">${ev.description}</div>
+      <textarea class="event-drawer__desc" data-desc-input rows="3">${escapeHtml(ev.description || "")}</textarea>
     </section>
 
     <section class="event-drawer__section">
       <div class="event-drawer__section-label">Comments</div>
       <div class="event-drawer__compose">
-        <textarea class="event-drawer__compose-input" id="event-comment-input" placeholder="Write a comment…" rows="2"></textarea>
+        <div class="event-drawer__compose-input-wrap">
+          <textarea class="event-drawer__compose-input" id="event-comment-input" placeholder="Write comment here" rows="3"></textarea>
+          <button class="event-drawer__attach" title="Attach file" aria-label="Attach file">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 17.93 8.83l-8.57 8.57a2 2 0 1 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+        </div>
         <div class="event-drawer__compose-row">
           <button class="event-drawer__post" data-post>Post</button>
         </div>
@@ -4729,11 +5816,22 @@ function renderEventDrawer() {
               <div class="event-comment__meta"><strong>${c.author}</strong> · ${c.ago}</div>
             </div>`).join("")}
       </div>
+      ${ev.comments.length > SHOW_LOAD_MORE_THRESHOLD ? `
+        <button class="event-drawer__load-more" data-load-more>Load More</button>
+      ` : ""}
     </section>
   `;
 
   drawer.querySelector("[data-close]").addEventListener("click", closeEventDrawer);
-  drawer.querySelector("[data-simulate]").addEventListener("click", () => seekTo(ev.pct));
+  // Opening the drawer already seeks to the event's pct (see openEventDrawer);
+  // an explicit "jump" button would just repeat that — removed.
+  drawer.querySelectorAll("[data-copy]").forEach(btn => {
+    btn.addEventListener("click", () => navigator.clipboard?.writeText(btn.dataset.copy));
+  });
+  // Editable description — persisted to the in-memory event object on every input.
+  // Survives a session but not a reload (no backend), matching the comments contract.
+  const descInput = drawer.querySelector("[data-desc-input]");
+  if (descInput) descInput.addEventListener("input", e => { ev.description = e.target.value; });
   drawer.querySelector("[data-status-pill]").addEventListener("click", e => {
     e.stopPropagation();
     openInlinePicker(e.currentTarget, STATUS_LIST.map(s => ({key:s, label:STATUS_LABELS[s], dot:s})), val => {
@@ -4796,6 +5894,7 @@ renderTabular();
 renderInstruments();
 renderStatus();
 renderMap();
+setupMapZoom();
 
 // Drawer + popover dismiss wiring
 $("#event-drawer-backdrop").addEventListener("click", closeEventDrawer);
@@ -4821,12 +5920,43 @@ setupFinder();
 setupSidebarPopovers();
 setupAddEmptyGraph();
 
+// Layout undo stack — snapshot LAYOUT before each mutation; cmd-Z / ctrl-Z restores.
+// Keeps last 20 states. Survives in-session only (no localStorage by design — analysts
+// open one flight at a time and shouldn't carry stale layouts across sessions).
+const LAYOUT_UNDO = [];
+function pushLayoutUndo() {
+  LAYOUT_UNDO.push(JSON.stringify(LAYOUT));
+  if (LAYOUT_UNDO.length > 20) LAYOUT_UNDO.shift();
+}
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey) {
+    // Don't steal undo from text inputs.
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (LAYOUT_UNDO.length === 0) return;
+    e.preventDefault();
+    LAYOUT = JSON.parse(LAYOUT_UNDO.pop());
+    applyMosaic();
+  }
+});
+
+// Move drag handle to the *left* of the title in every module header.
+// It's the primary rearrangement affordance — should not visually compete with × on the right.
+// One-time DOM mutation; modules are moved (not rebuilt) on subsequent renders, so order persists.
+document.querySelectorAll(".module").forEach(m => {
+  const head = m.querySelector(".module__head");
+  const drag = m.querySelector(".module__drag");
+  if (head && drag && head.firstElementChild !== drag) head.insertBefore(drag, head.firstChild);
+});
+
 // Mosaic system — must run AFTER all module-internal renders have placed
 // their content into the module bodies (they did, above).
+seedLastPositions();
 applyMosaic();
 setupModuleHideButtons();
 setupMosaicResize();
 setupMosaicReorder();
+setupModuleTabs();
 renderTemplatesList();
 
 update();

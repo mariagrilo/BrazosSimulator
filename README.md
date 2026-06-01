@@ -57,8 +57,9 @@ CSS custom properties on `:root` (all verified against the current file):
 --color-text:        #FFFFFF;
 --color-text-dim:    #7FA8B8;
 --color-text-muted:  #3A6478;
---font-body:         'Inter', sans-serif;        /* placeholder until Acid Grotesk is licensed */
+--font-body:         'Inter', sans-serif;
 --font-label:        'Space Grotesk', sans-serif;
+/* Display family — Acid Grotesk (FFF / Studio Feixen), local files in assets/fonts/. */
 --topbar-height:     56px;
 --timeline-height:   76px;
 --sidebar-width:     260px;
@@ -218,7 +219,6 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 - Backend wiring — comments / status / validity changes are session-local.
 - Multi-window sync model — TBD.
 - Persistent saved layouts (`SAVED_LAYOUTS` is in-memory only).
-- Acid Grotesk font licensing — Inter is the placeholder.
 
 ### Open design questions for the analyst meeting
 
