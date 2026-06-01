@@ -1,2 +1,5 @@
 .claude/
 .DS_Store
+.playwright-mcp/
+critique-*.png
+layout-*.png
