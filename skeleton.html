@@ -57,7 +57,7 @@
       /* Text */
       --color-text:        #FFFFFF;
       --color-text-dim:    #7FA8B8;   /* secondary labels */
-      --color-text-muted:  #3A6478;   /* placeholder, inactive */
+      --color-text-muted:  #688E9F;   /* quiet labels — ~4.9:1 on bg (WCAG AA) */
 
       /* Layout */
       --topbar-height:     56px;
@@ -997,20 +997,11 @@
       flex-shrink: 0;
       min-height: 36px;
     }
-    /* Drag handle is the primary affordance — lives left of title (set via JS).
-       Persistent at 0.45 opacity so analysts always see it; full strength on hover. */
-    .module__head > .module__drag {
-      opacity: 0.45;
-    }
-    .module:hover .module__head > .module__drag { opacity: 0.85; }
-    .module__head > .module__drag:hover { opacity: 1; }
-    /* Hide button is destructive — recede at rest, surface only on header hover. */
-    .module__hide {
-      opacity: 0 !important;
-      transition: opacity 0.15s, color 0.15s, background 0.15s !important;
-    }
-    .module__head:hover .module__hide { opacity: 0.55 !important; }
-    .module__head:hover .module__hide:hover { opacity: 1 !important; }
+    /* Drag handle: persistent and always discoverable. De-emphasis is carried by
+       color (text-dim, ~6.9:1) instead of opacity-times-muted, so the at-rest
+       state clears WCAG 1.4.11 non-text contrast (3:1). */
+    /* Hide button: recessive at rest but never invisible — touch users have no
+       hover, so opacity:0 made the close button impossible to find. */
     /* Per-module min sizes — prevents 3D-squished and Map-in-void after layout changes.
        Set on the .module so the parent flex pane has a real intrinsic floor. */
     .module[data-module="view3d"]  { min-height: 220px; min-width: 280px; }
@@ -1055,14 +1046,20 @@
       width: 22px; height: 22px;
       display: flex; align-items: center; justify-content: center;
       border-radius: 3px;
-      color: var(--color-text-muted);
+      color: var(--color-text-dim);
       background: transparent; border: none;
       cursor: pointer;
-      opacity: 0.55;
-      transition: opacity 0.15s, color 0.15s, background 0.15s;
+      transition: color 0.15s, background 0.15s, box-shadow 0.15s;
     }
-    .module:hover .module__drag,
-    .module:hover .module__hide { opacity: 1; }
+    .module__drag:focus-visible, .module__hide:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-accent);
+    }
+    /* Hide button is the destructive action — kept quieter at rest, but still
+       above the 3:1 non-text contrast floor (uses text-muted, ~4.9:1). */
+    .module__hide { color: var(--color-text-muted); }
+    .module:hover .module__hide,
+    .module__hide:focus-visible { color: var(--color-text-dim); }
     .module__drag { cursor: grab; }
     .module__drag:hover { color: var(--color-text); background: var(--color-surface-hi); }
     .module__drag:active { cursor: grabbing; }
@@ -1983,8 +1980,8 @@
     }
     .status-event__meta {
       font-family: var(--font-label);
-      font-size: 9px;
-      letter-spacing: 0.08em;
+      font-size: 10px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--color-text-muted);
     }
@@ -2031,9 +2028,9 @@
     }
     .status-approach:hover { background: var(--color-surface-hi); }
     .status-approach:last-child { border-bottom: none; }
-    .status-approach__id { font-family: var(--font-label); font-size: 9px; color: var(--color-text-muted); letter-spacing: 0.04em; }
+    .status-approach__id { font-family: var(--font-label); font-size: 10px; color: var(--color-text-muted); letter-spacing: 0.04em; }
     .status-approach__name { font-size: 12px; color: var(--color-text); }
-    .status-approach__meta { font-family: var(--font-label); font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
+    .status-approach__meta { font-family: var(--font-label); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted); }
     .status-approach__td { font-family: var(--font-label); font-size: 11px; color: var(--color-accent); text-align: right; }
 
     /* Approaches list */
@@ -2124,8 +2121,8 @@
     .tape__label {
       position: absolute; top: 0; left: 0; right: 0;
       text-align: center;
-      font-family: var(--font-label); font-size: 8px;
-      letter-spacing: 0.08em; text-transform: uppercase;
+      font-family: var(--font-label); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--color-text-muted);
       background: var(--color-bg);
       border-bottom: 1px solid var(--color-border);
@@ -2308,8 +2305,8 @@
       padding: 4px 8px;
     }
     .engine-digital__label {
-      font-family: var(--font-label); font-size: 9px;
-      letter-spacing: 0.08em; text-transform: uppercase;
+      font-family: var(--font-label); font-size: 10px;
+      letter-spacing: 0.06em; text-transform: uppercase;
       color: var(--color-text-muted);
     }
     .engine-digital__value {
