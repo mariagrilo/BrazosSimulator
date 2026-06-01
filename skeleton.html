@@ -1014,7 +1014,7 @@
     /* Per-module min sizes — prevents 3D-squished and Map-in-void after layout changes.
        Set on the .module so the parent flex pane has a real intrinsic floor. */
     .module[data-module="view3d"]  { min-height: 220px; min-width: 280px; }
-    .module[data-module="pfd"]     { min-height: 360px; min-width: 280px; }
+    .module[data-module="pfd"]     { min-height: 280px; min-width: 260px; }
     .module[data-module="map"]     { min-height: 200px; min-width: 280px; }
     .module[data-module="engines"] { min-height: 220px; min-width: 280px; }
     .module[data-module="graphs"]  { min-height: 280px; min-width: 320px; }
@@ -2087,10 +2087,10 @@
       border: 1px solid var(--color-border);
       border-radius: 8px;
       display: grid;
-      grid-template-columns: 70px 1fr 70px 50px;
-      grid-template-rows: 1fr 44px;
-      gap: 8px;
-      padding: 14px;
+      grid-template-columns: 54px 1fr 54px 40px;
+      grid-template-rows: 1fr 36px;
+      gap: 6px;
+      padding: 10px;
       position: relative;
       overflow: hidden;
       min-height: 0;
@@ -2111,12 +2111,12 @@
       background: var(--color-accent);
       color: var(--color-bg);
       font-family: var(--font-label); font-weight: 500;
-      font-size: 14px; padding: 3px 6px;
+      font-size: 12px; padding: 2px 5px;
       border-radius: 2px;
       pointer-events: none;
       white-space: nowrap;
       z-index: 2;
-      min-width: 36px;
+      min-width: 30px;
       text-align: center;
     }
     .tape__readout--left  { left: 0;  border-radius: 0 2px 2px 0; }
@@ -2124,12 +2124,12 @@
     .tape__label {
       position: absolute; top: 0; left: 0; right: 0;
       text-align: center;
-      font-family: var(--font-label); font-size: 9px;
+      font-family: var(--font-label); font-size: 8px;
       letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--color-text-muted);
       background: var(--color-bg);
       border-bottom: 1px solid var(--color-border);
-      padding: 5px 4px 4px;
+      padding: 3px 4px 3px;
       pointer-events: none;
       z-index: 3;
     }
@@ -2242,7 +2242,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      overflow: auto;
+      overflow: hidden;
       position: relative;
     }
     .engines__col-headers {
@@ -5159,7 +5159,7 @@ function applyMosaic() {
 // total module height (header + content) — the post-render walker uses it as
 // `flex: 0 0 <px>` for any matching pane inside a v-split.
 const FIT_CONTENT_H = {
-  pfd:     400,
+  pfd:     300,  // header + 280px min-height
   engines: 240,  // measured: header 39 + intrinsic body 199 + 2px breathing room
 };
 
@@ -5364,11 +5364,30 @@ function setupMosaicResize() {
     document.body.style.cursor = isHorizontal ? "col-resize" : "row-resize";
     document.body.style.userSelect = "none";
 
+    // Per-module min-size floors: a pane must never shrink below the inner
+    // module's declared min-width / min-height. Convert each px floor to a
+    // weight share of this split so the drag math stays in weight units.
+    const allPanes = Array.from(splitEl.children).filter(c => c.classList.contains("mosaic-pane"));
+    function paneMinPx(i) {
+      const mod = allPanes[i]?.querySelector(":scope > .module");
+      if (!mod) return 0;
+      const cs = getComputedStyle(mod);
+      const raw = isHorizontal ? cs.minWidth : cs.minHeight;
+      return parseFloat(raw) || 0;
+    }
+    const ABS_MIN = 5; // ultimate floor so a degenerate split is still usable
+    const minWA = Math.max(ABS_MIN, (paneMinPx(idx)     / total) * startSum);
+    const minWB = Math.max(ABS_MIN, (paneMinPx(idx + 1) / total) * startSum);
+    // If both mins together exceed the split's budget, fall back to symmetric
+    // floors so the drag isn't fully frozen.
+    const totalMin = minWA + minWB;
+    const cappedA = totalMin > startSum ? (startSum * minWA / totalMin) : minWA;
+    const cappedB = totalMin > startSum ? (startSum * minWB / totalMin) : minWB;
+
     function onMove(ev) {
       const delta = (isHorizontal ? ev.clientX : ev.clientY) - startPos;
       const deltaPct = (delta / total) * startSum;
-      const MIN = 5;
-      const newA = Math.max(MIN, Math.min(startSum - MIN, startA + deltaPct));
+      const newA = Math.max(cappedA, Math.min(startSum - cappedB, startA + deltaPct));
       const newB = startSum - newA;
       splitNode.weights[idx] = newA;
       splitNode.weights[idx + 1] = newB;
