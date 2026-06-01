@@ -57,11 +57,12 @@ CSS custom properties on `:root` (all verified against the current file):
 --color-text:        #FFFFFF;
 --color-text-dim:    #7FA8B8;
 --color-text-muted:  #3A6478;
---font-body:         'Inter', sans-serif;
+--font-body:         'Acid Grotesk', 'Inter', sans-serif;  /* body weight 350 (Book) */
 --font-label:        'Space Grotesk', sans-serif;
-/* Display family — Acid Grotesk (FFF / Studio Feixen), local files in assets/fonts/. */
+/* Acid Grotesk (FFF / Studio Feixen) — local @font-face from assets/fonts/.
+   Weights wired: 300 Light, 350 Book, 400 Normal, 450 Regular, 500 Medium, 700 Bold (+ italics). */
 --topbar-height:     56px;
---timeline-height:   76px;
+--timeline-height:   70px;   /* track 48px + 11px padding each side */
 --sidebar-width:     260px;
 --sidebar-collapsed: 52px;
 ```
@@ -107,7 +108,9 @@ Key functions:
 - `removeModuleFromTree()` / `addModuleToTree()` / `swapModulesInTree()` — tree mutations driven by the × button, the Layout visibility checklist, and drag-to-swap respectively.
 - `collapseSingletonSplits()` — after removal, any split left with a single child is replaced by that child, so the sibling expands.
 - `setupMosaicResize()` — delegated `mousedown` on `.mosaic-divider`; mutates the divider's parent split's `weights[idx]` and `weights[idx+1]`.
-- `setupMosaicReorder()` — delegated `mousedown` on `[data-module-drag]`; identifies drop target via `elementFromPoint` then `swapModulesInTree`.
+- `setupMosaicReorder()` — delegated `mousedown` on `[data-module-drag]`; drop intent is decided by *where* on the target the mouse releases (Path B): hovering an edge of a pane = split that pane on that edge; hovering the gap between sibling panes = insert there; hovering near the workspace perimeter = wrap the whole tree. A translucent **phantom pane** previews the landing slot live while dragging. There is no swap mode — every gesture is "insert beside".
+- `applyFitContentSizing()` — after each `applyMosaic`, walks panes and pins the PFD (400px) and Engines (240px) to fixed pixel heights when they sit inside a vertical split, so they always render at their intrinsic content height. Horizontal splits keep weighted share.
+- `pushLayoutUndo()` / cmd-Z — 20-deep layout undo stack restores `LAYOUT` after any mutation.
 
 This replaced a CSS-Grid layout. Grid tracks are shared across all cells, so adjusting one cell affected every other cell in the same row/column. The tree fixes that.
 
@@ -117,13 +120,13 @@ Seven static `<section class="module" data-module="…">` elements live in the H
 
 | `data-module` | Title | Body content |
 |---|---|---|
-| `graphs` | Graphs | Dynamic chart cards + "Add a graph" button |
-| `tabular` | Tabular | Full parameter table, downsampled |
-| `status` | Status | Severity hero + events table + approaches |
-| `view3d` | 3D View | WebGL placeholder + live readout (ALT, IAS, VSI, HDG, P, R) |
-| `map` | Map | Synthetic SVG flight track + event dots + current position |
-| `pfd` | Primary Flight Display | Speed/alt tapes, attitude, VSI, heading strip |
-| `engines` | Engines | TRQ / N1 / EGT bars per engine + COL + digital cells |
+| `graphs` | Graphs | Dynamic chart cards + "Add a graph" button (bolder teal-tinted CTA, lifts on hover) |
+| `tabular` | Tabular | Tabular + Status as sub-tabs. Tabular: downsampled parameter table; click-to-seek; auto-scrolls to current row; event rows are colour-tinted across **all** columns by their severity level |
+| `status` | Status (tab inside Tabular slot) | Compact stat-block hero (L3/L2/L1 counts) + single scrollable list of events in time order |
+| `view3d` | 3D View | Helicopter photo placeholder (`assets/helicopter-placeholder.png`) + live readout (ALT, IAS, VSI, HDG, P, R) |
+| `map` | Map | Real map photo (`assets/map.png`) with zoom + pan, flight-track polyline overlay, directional aircraft arrow rotated to path tangent |
+| `pfd` | Primary Flight Display | Speed/alt tapes, attitude, VSI, heading strip — fits to 400px in vertical splits |
+| `engines` | Engines | TRQ / N1 / EGT bars per engine + COL + digital cells — fits to 240px in vertical splits |
 
 Each module has a header with: title, ⋮⋮ drag handle, × hide button. **No sub-tabs** — PFD/Engines used to be tabs of one Instruments module, and 3D/Map used to be tabs of one View module. Both were split per analyst-side feedback that tabs hide functionality.
 
@@ -131,16 +134,16 @@ Each module has a header with: title, ⋮⋮ drag handle, × hide button. **No s
 
 Three commitment levels, increasing in weight:
 
-1. **Pin click on the timeline** (or graph event-line click, or Finder event click) → `openEventPopover()` shows a small popover anchored to the pin: code, value, threshold, phase, status pill, validity pill, "Open full detail" link. Closes on ×, outside-click, Esc, or another pin click. The simulator stays visible.
-2. **"Open full detail"** or **Status row click** → `openEventDrawer()` shows the heavy side drawer: full metadata, description, comments thread, full status / validity controls.
+1. **Pin click on the timeline** (or graph event-line click, or Finder event click) → `openEventPopover()` shows a small 340px popover anchored to the pin: code, value, threshold, phase, fixed-width status + validity pills (one row, never wraps), "Open full detail" link. Closes on ×, outside-click, Esc, or another pin click. The simulator stays visible.
+2. **"Open full detail"** or **Status row click** → `openEventDrawer()` shows the heavy side drawer: large severity pill + level under title, line-broken event ID / name, flight info strip mirrored at the top, editable description, full metadata (with a **Specifications** chip that hovers a threshold tooltip anchored to the chip's centre), comments thread, status + validity dropdowns. No "Jump to moment" — the underlying timeline is already at the event.
 3. **Status + validity changes** route through `openInlinePicker()` (a dropdown anchored to whichever pill was clicked). All state changes are **session-local** — they live on `FLIGHT.events[*]` and reset on reload. No backend wired.
 
 `STATUS_LIST` = `["open", "in_progress", "closed"]`. `VALIDITY_LIST` = `["auto", "manual"]`.
 
 ### Timeline
 
-- Altitude profile drawn as an SVG path *behind* the track — gives flight shape at a glance (helicopter vs jet, where each phase sits).
-- Event markers are pin glyphs *inside* the track, tip aligned with the exact event time.
+- Altitude profile drawn as an SVG path *behind* the 48px track — gives flight shape at a glance (helicopter vs jet, where each phase sits).
+- Event markers are map-pin glyphs (per Figma 5221:13079) bottom-anchored inside the track, tip on the exact event time, inner severity-coloured dot (r=3).
 - Current-time chip sits below the track, with a teal caret pointing up at the playhead.
 - Click / drag the track to seek. Buttons: prev event, play/pause, next event. Speed selector from 0.25× to 8×.
 - **Timeline zoom is not yet built** — it's the next thing to ship (see [Roadmap](#status--roadmap)).
@@ -151,7 +154,7 @@ Click the flight name at the left end of the timeline bar — a slim strip slide
 
 ### Sidebar
 
-- **Finder** fills the column. Search input + scope toggles (Event / Parm / KTI / KPV / Phase). Clicking a scope toggle scrolls the results to that section.
+- **Finder** fills the column. Search input + scope toggles (Event / KTI / KPV / Phase / Parameters — Parameters last per latest order). Clicking a scope toggle scrolls the results to that section.
 - **Layout** popover (footer, left icon) — visibility checklist for every module.
 - **Templates** popover (footer, right icon) — built-in tree presets ("Default analyst layout", "Approach review", "Engine investigation") + "+ Save current as template".
 
@@ -192,20 +195,23 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 ### Done
 
 - Brazos design tokens + visual identity
-- Timeline with altitude profile, event pin markers, scrubber, playback
-- Mosaic nested-split-pane layout (drag, resize, hide, swap, templates)
-- 7 modules: graphs, tabular, status, view3d, map, pfd, engines
-- Event interaction: pin popover (light) + drawer (heavy) + inline picker for status / validity
+- **Acid Grotesk wired locally** (`assets/fonts/`), body weight 350 Book per Figma
+- Timeline with altitude profile, Figma map-pin event markers, scrubber, playback
+- Mosaic nested-split-pane layout: drag with **phantom-pane preview** (edge / gap / perimeter drop), resize, hide, layout undo (cmd-Z), built-in + user templates
+- **Fit-content sizing** for PFD (400px) and Engines (240px) in vertical splits
+- 7 modules: graphs, tabular (Tabular + Status as sub-tabs), view3d, map, pfd, engines
+- **Tabular interactivity**: click-to-seek, auto-scroll-to-current, severity-tinted event rows, in-row event markers
+- Event interaction: pin popover (340px, one-row pills) + drawer (heavy, with flight strip + Specifications tooltip) + inline picker
 - Comments thread per event (session-local)
-- Finder with scope toggles, scroll-to-section, stable per-param colors
+- Finder with scope toggles (Parameters last), scroll-to-section, stable per-param colors
 - Per-graph add/remove parameters with dual-Y scale enforcement
 - Hover-isolate on chart lines + matching axis
-- Status hero (severity verdict + counts), events table, approaches list
-- PFD + Engines as separate modules
-- 3D View + Map as separate modules
-- Flight info slide-down strip
+- Bolder "Add a graph" CTA with teal hover lift
+- **Status module compacted**: stat-block hero (no verdict text), single scroll, 3-col compact event list
+- 3D View with helicopter photo placeholder; Map with real photo + zoom/pan + directional aircraft arrow
+- Flight info slide-down strip — one line at any width via flexbox
 - Sidebar Layout & Templates popovers
-- Working dual-remote git push
+- Working dual-remote git push, assets tracked in `assets/`
 
 ### Pending — Thierry's latest feedback
 
@@ -213,8 +219,8 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 
 ### Pending — broader
 
-- Real 3D visualizer (currently a placeholder pending WebGL integration).
-- Real map provider (Mapbox / Google / OSM not chosen yet).
+- Real 3D visualizer (currently a photo placeholder, pending WebGL integration).
+- Real map provider (Mapbox / Google / OSM not chosen yet — currently a photo with track overlay).
 - Real flight data — everything is mocked.
 - Backend wiring — comments / status / validity changes are session-local.
 - Multi-window sync model — TBD.
@@ -275,6 +281,7 @@ Terse, on purpose:
 - **Drag / resize / hide use document-level delegated handlers** because modules move around the tree on every render. Per-element handlers would be stale immediately. Keep delegation.
 - **Empty cells were a bug** in the old grid layout. The tree collapses single-child splits so siblings expand. Don't bring back static placement.
 - **State mutations**: anything touching `LAYOUT` (the tree), `FLIGHT.events[*]`, or `GRAPHS` needs to be followed by `applyMosaic()` or the corresponding render function. The render functions write directly to DOM; there's no virtual DOM.
-- **Dead code worth knowing about**: `_legacy_findResizeHandles`, `_legacy_positionMosaicResizeHandles`, `_legacy_setupRightTabs` and the empty stubs `setupRightTabs`, `setupInstrumentsTabs`, `setupLayoutOptions`, `setupPanelResize` exist. Safe to delete in a future pass — left in for now to keep the boot section unchanged.
+- **Dead code worth knowing about**: `_legacy_findResizeHandles`, `_legacy_positionMosaicResizeHandles`, `_legacy_setupRightTabs`, the empty stubs `setupRightTabs`, `setupInstrumentsTabs`, `setupLayoutOptions`, `setupPanelResize`, and the now-noop `renderMap` (its original body lives next to it as `__removed_renderMap_unused`). Safe to delete in a future pass — left in for now to keep the boot section unchanged.
+- **Assets live in `assets/` (lowercase).** macOS is case-insensitive but GitHub isn't — keep the directory lowercase or htmlpreview will 404. Fonts in `assets/fonts/` (FFF Acid Grotesk OTFs + Space Grotesk variable TTF). Photos: `helicopter-placeholder.png`, `map.png`.
 
 When in doubt about a design direction: the user is **mariagrilo** (Subvisual, designer). She knows the analyst context, has talked to Thierry (Brazos), and will push back on bad design choices. Listen to her critiques — she's run `/impeccable:critique` on previous AI proposals and the feedback was correct.
