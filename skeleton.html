@@ -380,6 +380,19 @@
       background: var(--color-accent);
       border-radius: 2px;
       transform: translateX(-50%);
+      cursor: grab;
+      z-index: 5;
+    }
+    .timeline-bar__head:hover { box-shadow: 0 0 0 3px rgba(40, 200, 185, 0.18); }
+    .timeline-bar__head.is-scrubbing { cursor: grabbing; }
+    /* Widen the hit target around the 2px head so it's actually grabbable */
+    .timeline-bar__head::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      left: -6px;
+      right: -6px;
     }
     .timeline-bar__head::before {
       content: '';
@@ -459,6 +472,49 @@
       z-index: 6;
     }
     .event-marker:hover::after { opacity: 1; }
+
+    /* Reset-zoom button — overlaid on the timeline track, right-anchored,
+       vertically centered. Visible only while the timeline is zoomed in. */
+    .timeline-bar__reset-zoom {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 22px;
+      height: 22px;
+      border-radius: 3px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface-hi);
+      color: var(--color-accent);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 7;
+    }
+    .timeline-bar__reset-zoom:hover {
+      border-color: var(--color-accent);
+    }
+    .timeline-bar__reset-zoom[hidden] { display: none; }
+
+    /* Drag-to-zoom selection rectangle on the timeline */
+    .timeline-bar__selection {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      background: rgba(40, 200, 185, 0.18);
+      border-left: 1px solid var(--color-accent);
+      border-right: 1px solid var(--color-accent);
+      pointer-events: none;
+      z-index: 4;
+    }
+    .timeline-bar__track.is-zoomed {
+      box-shadow: inset 0 0 0 1px rgba(40, 200, 185, 0.45);
+    }
+    /* Visual cue that the timeline is interactive for zoom — text-cursor on hover */
+    .timeline-bar__track:hover { cursor: ew-resize; }
 
     /* Tick marks */
     .timeline-bar__ticks {
@@ -2940,6 +2996,7 @@
         <div class="timeline-bar__progress" id="track-progress"></div>
         <!-- Event markers + ticks injected by JS -->
         <div class="timeline-bar__head" id="track-head"></div>
+        <button class="timeline-bar__reset-zoom" id="reset-zoom" type="button" title="Reset zoom (show full flight)" hidden>⤾</button>
       </div>
     </div>
 
@@ -3426,7 +3483,18 @@ const STATE = {
   rightPane: "3d",
   module: "graphs",
   activeEventId: null, // event whose detail drawer is open (or null)
+  viewStart: 0,        // visible timeline window (zoom): start in flight pct [0..1]
+  viewEnd: 1,          // visible timeline window (zoom): end in flight pct [0..1]
 };
+
+/* Convert a flight pct to the current view's local pct (may be <0 or >1 if out of view). */
+function flightPctToView(p) {
+  const span = STATE.viewEnd - STATE.viewStart;
+  return span > 0 ? (p - STATE.viewStart) / span : 0;
+}
+function viewPctToFlight(vp) {
+  return STATE.viewStart + vp * (STATE.viewEnd - STATE.viewStart);
+}
 
 /* ──────────────────────────────────────────────────────────────────────────
    RENDER — initial DOM construction
@@ -3493,6 +3561,7 @@ function renderTimeline() {
     const m = el("div", "event-marker");
     m.dataset.level = ev.level;
     m.dataset.eventId = ev.id;
+    m.dataset.pct = ev.pct;
     m.style.left = (ev.pct*100) + "%";
     m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
     // Pin glyph — per Figma 5221:13079. Map-pin balloon with a 4×4 inner dot.
@@ -3971,6 +4040,7 @@ function renderGraphs() {
     // event lines
     FLIGHT.events.forEach(ev => {
       const line = el("div", "graph-event-line level-" + ev.level);
+      line.dataset.pct = ev.pct;
       line.style.left = (ev.pct*100) + "%";
       line.title = `${ev.code} · ${pctToTime(ev.pct)}`;
       line.addEventListener("click", e => { e.stopPropagation(); openEventPopover(ev.id, line); });
@@ -3999,6 +4069,7 @@ function renderGraphs() {
       line.setAttribute("stroke", color);
       line.setAttribute("stroke-width", "1.5");
       line.setAttribute("opacity", "0.9");
+      line.setAttribute("vector-effect", "non-scaling-stroke");
       line.setAttribute("points", pts);
       line.dataset.pid = pid;
       svg.appendChild(line);
@@ -4417,15 +4488,29 @@ function update() {
   const pct = STATE.pct;
   const pctStr = (pct*100).toFixed(2) + "%";
 
-  // timeline head
-  $("#track-head").style.left = pctStr;
-  $("#track-progress").style.width = pctStr;
+  // timeline head — positions are expressed in the *visible* (possibly zoomed) view
+  const viewP = flightPctToView(pct);
+  const inView = viewP >= 0 && viewP <= 1;
+  const viewPctClamped = Math.max(0, Math.min(1, viewP));
+  const viewPctStr = (viewPctClamped*100).toFixed(2) + "%";
+
+  $("#track-head").style.left = viewPctStr;
+  $("#track-head").style.display = inView ? "" : "none";
+  // Progress fills from the visible left edge to the playhead (or full if pct is past view)
+  const progressW = pct <= STATE.viewStart ? 0
+                  : pct >= STATE.viewEnd   ? 1
+                  : viewP;
+  $("#track-progress").style.width = (progressW*100).toFixed(2) + "%";
   const cur = $("#t-current");
-  cur.style.left = pctStr;
+  cur.style.left = viewPctStr;
+  cur.style.display = inView ? "" : "none";
   cur.textContent = pctToTime(pct);
 
-  // graph playheads
-  $$(".graph-playhead").forEach(ph => ph.style.left = pctStr);
+  // graph playheads — same view mapping
+  $$(".graph-playhead").forEach(ph => {
+    ph.style.left = viewPctStr;
+    ph.style.display = inView ? "" : "none";
+  });
 
   // legend current values
   const idx = Math.round(pct*(N-1));
@@ -4543,19 +4628,154 @@ function seekTo(pct) {
   update();
 }
 
+/* ─── Zoom: re-flow everything that depends on the visible timeline window ─── */
+function applyZoom() {
+  const vs = STATE.viewStart, ve = STATE.viewEnd, span = ve - vs;
+
+  // Time readouts on the timeline bar reflect the *visible* window.
+  $("#t-start").textContent = pctToTime(vs);
+  $("#t-end").textContent   = pctToTime(ve);
+  const visSec = Math.round(span * FLIGHT.durationSec);
+  const m = Math.floor(visSec/60), s = visSec%60;
+  $("#t-duration").innerHTML = `&thinsp;${m} min ${s}s`;
+
+  // Altitude profile behind the timeline track — narrow its viewBox to the visible range.
+  const altSvg = document.querySelector(".timeline-bar__altitude");
+  if (altSvg) altSvg.setAttribute("viewBox", `${(vs*1000).toFixed(2)} 0 ${(span*1000).toFixed(2)} 32`);
+
+  // Event markers (pins) on the timeline — reposition, hide if outside the view.
+  $$("#track .event-marker").forEach(m => {
+    const p = parseFloat(m.dataset.pct);
+    const vp = (p - vs) / span;
+    if (vp < -0.001 || vp > 1.001) { m.style.display = "none"; }
+    else { m.style.display = ""; m.style.left = (vp*100) + "%"; }
+  });
+
+  // Each chart card: zoom the SVG viewBox in X, and reposition event guide-lines.
+  $$(".graph-card").forEach(card => {
+    const svg = card.querySelector(".graph-placeholder svg");
+    if (svg) svg.setAttribute("viewBox", `${(vs*500).toFixed(2)} 0 ${(span*500).toFixed(2)} 80`);
+    card.querySelectorAll(".graph-event-line").forEach(line => {
+      const p = parseFloat(line.dataset.pct);
+      const vp = (p - vs) / span;
+      if (vp < -0.001 || vp > 1.001) { line.style.display = "none"; }
+      else { line.style.display = ""; line.style.left = (vp*100) + "%"; }
+    });
+  });
+
+  const zoomed = span < 0.999;
+  $("#track").classList.toggle("is-zoomed", zoomed);
+  const resetBtn = $("#reset-zoom");
+  if (resetBtn) resetBtn.hidden = !zoomed;
+}
+
 function setupTimeline() {
   const track = $("#track");
-  let dragging = false;
-  function onPos(e){
-    const rect = track.getBoundingClientRect();
-    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-    seekTo(x/rect.width);
+  const sel = document.createElement("div");
+  sel.className = "timeline-bar__selection";
+  sel.style.display = "none";
+  track.appendChild(sel);
+
+  // Modes:
+  //   'scrub'   — user grabbed the playhead and is dragging it; updates STATE.pct
+  //   'pending' — mousedown on the track; resolves to 'click' (seek) or 'drag' (zoom) on move/up
+  //   'drag'    — user is dragging out a zoom-in selection rectangle
+  let mode = null;
+  let startX = 0, startPct = 0;
+  const DRAG_THRESHOLD = 4;
+  const HEAD_GRAB_PX   = 8; // hit slop around the 2px playhead bar
+
+  const head = $("#track-head");
+
+  function clientX(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
+  function localPct(x) {
+    const r = track.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (x - r.left) / r.width));
   }
-  track.addEventListener("mousedown", e => { dragging = true; onPos(e); });
-  document.addEventListener("mousemove", e => { if (dragging) onPos(e); });
-  document.addEventListener("mouseup",   () => dragging = false);
-  track.addEventListener("touchstart", onPos);
-  track.addEventListener("touchmove",  onPos);
+
+  function onDown(e) {
+    if (e.target.closest('.event-marker')) return;
+    if (e.target.closest('#reset-zoom')) return;
+    const x = clientX(e);
+    // Grab the playhead if the press lands on (or near) it. Works whether the user
+    // hits the bar itself or its widened ::after hit area.
+    const onHead = e.target === head || head.contains(e.target);
+    const rect = track.getBoundingClientRect();
+    const headViewP = flightPctToView(STATE.pct);
+    const nearHead = headViewP >= 0 && headViewP <= 1 &&
+                     Math.abs((x - rect.left) - headViewP * rect.width) <= HEAD_GRAB_PX;
+    if (onHead || nearHead) {
+      mode = 'scrub';
+      head.classList.add('is-scrubbing');
+      e.preventDefault();
+      return;
+    }
+    mode = 'pending';
+    startX = x;
+    startPct = localPct(x);
+    sel.style.display = "none";
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!mode) return;
+    const x = clientX(e);
+    if (mode === 'scrub') {
+      seekTo(viewPctToFlight(localPct(x)));
+      return;
+    }
+    if (mode === 'pending' && Math.abs(x - startX) > DRAG_THRESHOLD) {
+      mode = 'drag';
+      sel.style.display = "block";
+    }
+    if (mode === 'drag') {
+      const a = Math.min(startPct, localPct(x));
+      const b = Math.max(startPct, localPct(x));
+      sel.style.left  = (a*100) + "%";
+      sel.style.width = ((b-a)*100) + "%";
+    }
+  }
+
+  function onUp(e) {
+    if (!mode) return;
+    if (mode === 'scrub') {
+      head.classList.remove('is-scrubbing');
+    } else if (mode === 'drag') {
+      const x = clientX(e);
+      const a = Math.min(startPct, localPct(x));
+      const b = Math.max(startPct, localPct(x));
+      // Drag inside an already-zoomed view zooms further into that sub-range.
+      if (b - a > 0.005) {
+        STATE.viewStart = viewPctToFlight(a);
+        STATE.viewEnd   = viewPctToFlight(b);
+        applyZoom();
+        update();
+      }
+    } else if (mode === 'pending') {
+      // Plain click on the track — seek to the clicked position.
+      seekTo(viewPctToFlight(startPct));
+    }
+    sel.style.display = "none";
+    mode = null;
+  }
+
+  // Reset-zoom button — visible only when zoomed (toggled in applyZoom)
+  const resetBtn = $("#reset-zoom");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      STATE.viewStart = 0;
+      STATE.viewEnd   = 1;
+      applyZoom();
+      update();
+    });
+  }
+
+  track.addEventListener("mousedown", onDown);
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup",   onUp);
+  track.addEventListener("touchstart", onDown, { passive: false });
+  document.addEventListener("touchmove", onMove);
+  document.addEventListener("touchend",  onUp);
 }
 
 function setupPlayback() {
