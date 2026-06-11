@@ -477,25 +477,31 @@
        vertically centered. Visible only while the timeline is zoomed in. */
     .timeline-bar__reset-zoom {
       position: absolute;
-      right: 6px;
+      right: 12px;
       top: 50%;
       transform: translateY(-50%);
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border-radius: 3px;
-      border: 1px solid var(--color-border);
-      background: var(--color-surface-hi);
-      color: var(--color-accent);
-      font-size: 14px;
+      border: none;
+      background: var(--color-accent);
+      color: var(--color-bg);
+      font-size: 15px;
+      font-weight: 600;
       line-height: 1;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       z-index: 7;
+      box-shadow: 0 0 0 1px var(--color-bg), 0 2px 6px rgba(0, 0, 0, 0.4);
+      transition: background 0.15s, transform 0.12s;
     }
     .timeline-bar__reset-zoom:hover {
-      border-color: var(--color-accent);
+      background: var(--color-accent-dim);
+    }
+    .timeline-bar__reset-zoom:active {
+      transform: translateY(-50%) scale(0.94);
     }
     .timeline-bar__reset-zoom[hidden] { display: none; }
 
@@ -509,6 +515,12 @@
       border-right: 1px solid var(--color-accent);
       pointer-events: none;
       z-index: 4;
+    }
+    /* Preview state — used when a finder phase is clicked, to flash the
+       selection over the full timeline before the zoom applies. */
+    .timeline-bar__selection.is-preview {
+      transition: opacity 0.14s ease-out;
+      background: rgba(40, 200, 185, 0.28);
     }
     .timeline-bar__track.is-zoomed {
       box-shadow: inset 0 0 0 1px rgba(40, 200, 185, 0.45);
@@ -705,6 +717,24 @@
       height: 8px;
       border-radius: 50%;
       flex-shrink: 0;
+      /* Default — desaturated so the list reads as quiet typography until a
+         user actively engages with an item. Selection swaps to accent blue. */
+      filter: grayscale(1) brightness(0.65);
+      transition: filter 0.18s ease, background 0.18s ease;
+    }
+    /* Events always carry their severity color — orange / yellow / green are
+       diagnostic signal, not decoration, so they can't be desaturated. */
+    [data-finder-group="Event"] .finder-item__dot { filter: none; }
+
+    .finder-item.is-selected {
+      background: var(--color-surface-hi);
+      color: var(--color-text);
+    }
+    /* Selected non-event items: dot becomes bright accent blue. Events keep
+       their severity color; selection is implied by the row background. */
+    [data-finder-group]:not([data-finder-group="Event"]) .finder-item.is-selected .finder-item__dot {
+      filter: none;
+      background: var(--color-accent) !important;
     }
     .finder-item__dot--hollow {
       background: transparent;
@@ -1361,7 +1391,11 @@
       position: relative;
       background: var(--color-bg);
       display: flex;
+      transition: opacity 0.18s ease;
     }
+    /* During a view-tween, charts cross-fade rather than animating their SVG
+       viewBox — looks calmer when the timeline is the focus of the gesture. */
+    .graph-card__plot.is-zooming { opacity: 0.18; }
     .graph-card__plot-area {
       position: relative;
       flex: 1;
@@ -2450,6 +2484,119 @@
       font-size: 10px;
       color: rgba(255,255,255,0.6);
     }
+    /* ─── In-app modal (used for the save-template prompt; replaces the
+           native browser prompt() so the dialog matches the rest of the
+           chrome). One element, two states: aria-hidden=true is closed. ─── */
+    .app-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .app-modal[aria-hidden="false"] { display: flex; }
+    .app-modal__backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 4, 8, 0.6);
+      backdrop-filter: blur(2px);
+    }
+    .app-modal__dialog {
+      position: relative;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 18px 20px 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .app-modal__title {
+      font-family: var(--font-label);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      margin: 0;
+    }
+    .app-modal__hint {
+      font-size: 13px;
+      color: var(--color-text-dim);
+      margin: 0;
+      line-height: 1.4;
+    }
+    .app-modal__field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .app-modal__label {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .app-modal__input {
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .app-modal__input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 2px rgba(40, 200, 185, 0.18);
+    }
+    .app-modal__input::placeholder { color: var(--color-text-muted); }
+    .app-modal__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .app-modal__btn {
+      font-family: var(--font-label);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 3px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-dim);
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .app-modal__btn:hover {
+      color: var(--color-text);
+      background: var(--color-surface);
+    }
+    .app-modal__btn--primary {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: var(--color-bg);
+    }
+    .app-modal__btn--primary:hover {
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent-dim);
+      color: var(--color-bg);
+    }
+    .app-modal__btn--primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* ─── Event popover (in-place response to pin click) ─────────────── */
     .event-popover {
       position: fixed;
@@ -3322,6 +3469,24 @@
 <div class="event-drawer-backdrop" id="event-drawer-backdrop"></div>
 <aside class="event-drawer" id="event-drawer" aria-hidden="true"></aside>
 
+<!-- Lightweight in-app prompt for naming a layout template. Replaces window.prompt
+     so the dialog matches the rest of the chrome (dark surface + accent button). -->
+<div class="app-modal" id="template-modal" aria-hidden="true" role="dialog" aria-labelledby="template-modal-title">
+  <div class="app-modal__backdrop" data-modal-dismiss></div>
+  <form class="app-modal__dialog" id="template-modal-form">
+    <h2 class="app-modal__title" id="template-modal-title">Save layout template</h2>
+    <p class="app-modal__hint">Give this arrangement a name so you can recall it later.</p>
+    <label class="app-modal__field">
+      <span class="app-modal__label">Name</span>
+      <input class="app-modal__input" id="template-modal-input" type="text" autocomplete="off" maxlength="40" placeholder="e.g. Approach review">
+    </label>
+    <div class="app-modal__actions">
+      <button type="button" class="app-modal__btn" data-modal-dismiss>Cancel</button>
+      <button type="submit" class="app-modal__btn app-modal__btn--primary" id="template-modal-save">Save template</button>
+    </div>
+  </form>
+</div>
+
 <script>
 /* ──────────────────────────────────────────────────────────────────────────
    FLIGHT DATA — mock dataset modeled on flight #46309524 (helicopter, AW139)
@@ -3482,6 +3647,7 @@ const STATE = {
   activeEventId: null, // event whose detail drawer is open (or null)
   viewStart: 0,        // visible timeline window (zoom): start in flight pct [0..1]
   viewEnd: 1,          // visible timeline window (zoom): end in flight pct [0..1]
+  selectedFinderKey: null, // currently-selected sidebar finder item — gates dot color
 };
 
 /* Convert a flight pct to the current view's local pct (may be <0 or >1 if out of view). */
@@ -3583,15 +3749,14 @@ function renderFinder() {
 
   if (filters.has("Event") && FLIGHT.events.some(e=>matches(e.code))) {
     root.appendChild(group("Events", FLIGHT.events.filter(e=>matches(e.code)).map(ev => ({
+      key: "event:" + ev.id,
       label: ev.code,
       meta:  pctToTime(ev.pct),
       color: ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D",
-      // Sidebar list → use the popover anchored to the corresponding pin
-      // (gives the user a visible spatial response in the timeline)
       onClick: () => {
+        seekFromFinder(ev.pct);
         const pin = document.querySelector(`.event-marker[data-event-id="${ev.id}"]`);
         if (pin) openEventPopover(ev.id, pin);
-        else seekTo(ev.pct);
       },
     })), "Event"));
   }
@@ -3601,8 +3766,9 @@ function renderFinder() {
       {label:"Top of Descent", pct:0.62}, {label:"Touchdown", pct:0.94},
     ].filter(k=>matches(k.label));
     if (ktis.length) root.appendChild(group("KTIs", ktis.map(k=>({
+      key: "kti:" + k.label,
       label:k.label, meta:pctToTime(k.pct), color:"#7FA8B8",
-      onClick: () => seekTo(k.pct),
+      onClick: () => seekFromFinder(k.pct),
     })), "KTI"));
   }
   if (filters.has("KPV")) {
@@ -3612,15 +3778,19 @@ function renderFinder() {
       {label:"VS Min",        value:"-2820 fpm", pct:0.62},
     ].filter(k=>matches(k.label));
     if (kpvs.length) root.appendChild(group("KPVs", kpvs.map(k=>({
+      key: "kpv:" + k.label,
       label:k.label, meta:k.value, color:"#28C8B9",
-      onClick: () => seekTo(k.pct),
+      onClick: () => seekFromFinder(k.pct),
     })), "KPV"));
   }
   if (filters.has("Phase")) {
     const phs = FLIGHT.phases.filter(p=>matches(p.name));
     if (phs.length) root.appendChild(group("Phases", phs.map(p=>({
+      key: "phase:" + p.name,
       label:p.name, meta:pctToTime(p.startPct), color:"#3A6478",
-      onClick: () => seekTo(p.startPct),
+      // Phases are intervals. First click scopes the timeline (with a brief
+      // preview animation), second click on the same phase zooms back out.
+      onClick: () => zoomToPhase(p, "phase:" + p.name),
     })), "Phase"));
   }
   // Parameters last — long list, gets the scrollable tail of the finder.
@@ -3659,7 +3829,14 @@ function renderFinder() {
       i.innerHTML = dot + `<span class="finder-item__label">${it.label}</span>` +
         (it.meta ? `<span class="finder-item__meta">${it.meta}</span>` : "");
       if (it.title) i.title = it.title;
-      if (it.onClick) i.addEventListener("click", it.onClick);
+      if (it.key) {
+        i.dataset.finderKey = it.key;
+        if (STATE.selectedFinderKey === it.key) i.classList.add("is-selected");
+      }
+      if (it.onClick) i.addEventListener("click", () => {
+        if (it.key) setSelectedFinder(it.key);
+        it.onClick();
+      });
       g.appendChild(i);
     });
     return g;
@@ -3744,9 +3921,9 @@ const PARAM_COLORS = {
 const colorForParam = (pid) => PARAM_COLORS[pid] || "#FFFFFF";
 
 /* — Scale axes ────────────────────────────────────────────────────────────
-   Each parameter is tagged with a `scale`. A chart shows up to TWO axes,
-   stacked side-by-side on the left. The picker disables params that would
-   push a chart over its 2-scale budget.                                    */
+   Each parameter is tagged with a `scale`. A chart renders one Y-axis
+   column per distinct scale, stacked side-by-side on the left — no cap on
+   how many scales can coexist in a single chart.                          */
 const SCALE_LABEL = {
   "ft":  "ft",
   "kt":  "kt",
@@ -3823,20 +4000,16 @@ function openAddParamMenu(graphIdx, anchorBtn) {
 
   function buildItemsHtml() {
     const inGraph = new Set((GRAPHS[graphIdx] || {}).params || []);
-    const usedScales = new Set([...inGraph].map(pid => PARAMETERS[pid].scale));
-    const atScaleLimit = usedScales.size >= 2;
 
     let html = `<div class="add-param-menu__title">Edit parameters</div>`;
     for (const [gKey, items] of Object.entries(allGroups)) {
       html += `<div class="add-param-menu__group">${groupTitles[gKey] || gKey}</div>`;
       for (const [id, p] of items) {
         const has = inGraph.has(id);
-        const blocked = !has && atScaleLimit && !usedScales.has(p.scale);
         const hint = has ? `<span class="add-param-item__check" aria-label="In graph">✓</span><span class="add-param-item__remove" aria-hidden="true">×</span>`
-                   : blocked ? `<span class="add-param-item__locked" title="Chart already uses 2 scales (${[...usedScales].join(', ')}) — remove a parameter to switch scales">scale full</span>`
-                   : `<span class="add-param-item__plus">+</span>`;
-        const title = has ? "Click to remove from graph" : blocked ? "Scale slot full" : "Click to add";
-        html += `<button class="add-param-item${has?" is-in":""}${blocked?" is-blocked":""}" data-pid="${id}" ${blocked?"disabled":""} title="${title}">
+                        : `<span class="add-param-item__plus">+</span>`;
+        const title = has ? "Click to remove from graph" : "Click to add";
+        html += `<button class="add-param-item${has?" is-in":""}" data-pid="${id}" title="${title}">
           <span class="add-param-item__name">${p.name}</span>
           <span class="add-param-item__units">${p.units}</span>
           ${hint}
@@ -4000,7 +4173,8 @@ function renderGraphs() {
     // plot
     const plot = el("div", "graph-card__plot");
 
-    // Determine the distinct scales in this graph (max 2, in insertion order)
+    // Determine the distinct scales in this graph (in insertion order — one
+    // Y-axis column will be rendered per scale; no upper bound).
     const scales = [];
     g.params.forEach(pid => {
       const s = PARAMETERS[pid].scale;
@@ -4625,8 +4799,16 @@ function seekTo(pct) {
   update();
 }
 
-/* ─── Zoom: re-flow everything that depends on the visible timeline window ─── */
+/* ─── Zoom: re-flow everything that depends on the visible timeline window.
+     Split into timeline and chart paths so the view-tween animation can
+     reflow the timeline continuously while charts cross-fade to the final
+     interval instead of animating their SVG viewBoxes frame-by-frame. ─── */
 function applyZoom() {
+  applyZoomTimeline();
+  applyZoomCharts();
+}
+
+function applyZoomTimeline() {
   const vs = STATE.viewStart, ve = STATE.viewEnd, span = ve - vs;
 
   // Time readouts on the timeline bar reflect the *visible* window.
@@ -4648,7 +4830,14 @@ function applyZoom() {
     else { m.style.display = ""; m.style.left = (vp*100) + "%"; }
   });
 
-  // Each chart card: zoom the SVG viewBox in X, and reposition event guide-lines.
+  const zoomed = span < 0.999;
+  $("#track").classList.toggle("is-zoomed", zoomed);
+  const resetBtn = $("#reset-zoom");
+  if (resetBtn) resetBtn.hidden = !zoomed;
+}
+
+function applyZoomCharts() {
+  const vs = STATE.viewStart, ve = STATE.viewEnd, span = ve - vs;
   $$(".graph-card").forEach(card => {
     const svg = card.querySelector(".graph-placeholder svg");
     if (svg) svg.setAttribute("viewBox", `${(vs*500).toFixed(2)} 0 ${(span*500).toFixed(2)} 80`);
@@ -4659,11 +4848,154 @@ function applyZoom() {
       else { line.style.display = ""; line.style.left = (vp*100) + "%"; }
     });
   });
+}
 
-  const zoomed = span < 0.999;
-  $("#track").classList.toggle("is-zoomed", zoomed);
-  const resetBtn = $("#reset-zoom");
-  if (resetBtn) resetBtn.hidden = !zoomed;
+/* — Sidebar finder: selection state. Only the selected item shows its color
+     dot; everything else stays desaturated to keep the list scannable. */
+function setSelectedFinder(key) {
+  STATE.selectedFinderKey = key;
+  $$('.finder-item').forEach(it => {
+    it.classList.toggle('is-selected', it.dataset.finderKey === key);
+  });
+}
+
+/* — Seek from a finder item. If the target time is outside the current
+     zoom window, zoom out to the full flight first, then seek — so users
+     never end up with a playhead they can't see. */
+function seekFromFinder(pct) {
+  if (pct < STATE.viewStart || pct > STATE.viewEnd) {
+    STATE.viewStart = 0;
+    STATE.viewEnd   = 1;
+    applyZoom();
+  }
+  seekTo(pct);
+}
+
+/* — Smoothly tween STATE.viewStart / viewEnd over `durationMs`. The selection
+     rectangle, if passed, tracks the phase's flight-pct range each frame:
+     during zoom-in it visibly grows from phase-size to full-track; during
+     zoom-out it shrinks from full-track back to phase-size. The timeline
+     contents reflow each frame too (ticks, event pins, chart viewBoxes,
+     playhead), so there are no hard cuts at start or end. */
+let _viewAnimRAF = null;
+function animateViewTo(targetStart, targetEnd, durationMs, trackedPhase, onDone) {
+  if (_viewAnimRAF) cancelAnimationFrame(_viewAnimRAF);
+  const fromS = STATE.viewStart, fromE = STATE.viewEnd;
+  const t0 = performance.now();
+  const sel = trackedPhase ? document.querySelector('#track .timeline-bar__selection') : null;
+  // Charts cross-fade instead of animating their SVG viewBoxes per-frame —
+  // continuous viewBox changes look noisy on dense polylines. Drop opacity
+  // for the duration of the tween; snap to the final viewBox and fade back.
+  const chartPlots = $$('.graph-card__plot');
+  chartPlots.forEach(c => c.classList.add('is-zooming'));
+  function step(now) {
+    const t = Math.min(1, (now - t0) / durationMs);
+    // Ease-in-out cubic — soft acceleration both ends, no bounce.
+    const k = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+    STATE.viewStart = fromS + (targetStart - fromS) * k;
+    STATE.viewEnd   = fromE + (targetEnd   - fromE) * k;
+    // Only reflow the timeline each frame; charts stay at their old viewBox
+    // and are hidden via opacity so the stale geometry doesn't show through.
+    applyZoomTimeline();
+    if (sel && trackedPhase) {
+      const span = STATE.viewEnd - STATE.viewStart;
+      const left = (trackedPhase.startPct - STATE.viewStart) / span;
+      const w    = (trackedPhase.endPct   - trackedPhase.startPct) / span;
+      sel.style.left  = (left * 100) + '%';
+      sel.style.width = (w    * 100) + '%';
+    }
+    // Playhead position is view-relative, so reposition it each frame too.
+    update();
+    if (t < 1) {
+      _viewAnimRAF = requestAnimationFrame(step);
+    } else {
+      _viewAnimRAF = null;
+      STATE.viewStart = targetStart;
+      STATE.viewEnd   = targetEnd;
+      // Snap charts to the final viewBox while they're still faded, then
+      // remove the class to trigger the fade-back transition.
+      applyZoomCharts();
+      requestAnimationFrame(() => {
+        chartPlots.forEach(c => c.classList.remove('is-zooming'));
+      });
+      applyZoomTimeline();
+      if (onDone) onDone();
+    }
+  }
+  _viewAnimRAF = requestAnimationFrame(step);
+}
+
+/* — Phase click. Three paths:
+     (a) Click matches the current zoom range exactly → zoom out to full
+         flight. Uses the view-only check (not selectedFinderKey) so an
+         intervening event/KTI click doesn't disable the toggle.
+     (b) Click while at full view → tween in from full, with the selection
+         rectangle growing from phase-size to full-track.
+     (c) Click while scoped to a different phase → scroll directly to the
+         new range. No zoom-out-then-zoom-in chain; no selection rect (the
+         smooth pan IS the affordance). */
+function zoomToPhase(p, key) {
+  const ZOOM_MS = 360;
+  const FADE_MS = 140;
+  const track = $("#track");
+  let sel = track.querySelector('.timeline-bar__selection');
+  if (!sel) {
+    sel = document.createElement('div');
+    sel.className = 'timeline-bar__selection';
+    track.appendChild(sel);
+  }
+  sel.classList.add('is-preview');
+
+  const matchesCurrentRange =
+       Math.abs(STATE.viewStart - p.startPct) < 1e-4
+    && Math.abs(STATE.viewEnd   - p.endPct)   < 1e-4;
+
+  if (matchesCurrentRange) {
+    // (a) Zoom-out: rect starts as full track, shrinks to phase-size with view.
+    sel.style.display = 'block';
+    sel.style.opacity = '1';
+    sel.style.left  = '0%';
+    sel.style.width = '100%';
+    setSelectedFinder(null);
+    animateViewTo(0, 1, ZOOM_MS, p, () => {
+      sel.style.opacity = '0';
+      setTimeout(() => {
+        sel.style.display = 'none';
+        sel.classList.remove('is-preview');
+      }, FADE_MS);
+    });
+    return;
+  }
+
+  const currentlyZoomed = STATE.viewStart > 1e-4 || STATE.viewEnd < 1 - 1e-4;
+  if (currentlyZoomed) {
+    // (c) Direct phase-to-phase scroll. No rect — the smooth pan/scale of
+    // the timeline contents (and the chart cross-fade) telegraph the move.
+    sel.style.opacity = '0';
+    sel.style.display = 'none';
+    sel.classList.remove('is-preview');
+    animateViewTo(p.startPct, p.endPct, ZOOM_MS, null, () => {
+      seekTo(p.startPct);
+    });
+    return;
+  }
+
+  // (b) Zoom-in from full view: rect over the phase, grows to full track.
+  sel.style.display = 'block';
+  sel.style.left  = (p.startPct * 100) + '%';
+  sel.style.width = ((p.endPct - p.startPct) * 100) + '%';
+  sel.style.opacity = '0';
+  requestAnimationFrame(() => {
+    sel.style.opacity = '1';
+    animateViewTo(p.startPct, p.endPct, ZOOM_MS, p, () => {
+      seekTo(p.startPct);
+      sel.style.opacity = '0';
+      setTimeout(() => {
+        sel.style.display = 'none';
+        sel.classList.remove('is-preview');
+      }, FADE_MS);
+    });
+  });
 }
 
 function setupTimeline() {
@@ -4764,6 +5096,11 @@ function setupTimeline() {
       STATE.viewEnd   = 1;
       applyZoom();
       update();
+      // Reset clears any active phase scope so the dot-color in the finder
+      // matches the actual state of the timeline.
+      if (STATE.selectedFinderKey && STATE.selectedFinderKey.startsWith('phase:')) {
+        setSelectedFinder(null);
+      }
     });
   }
 
@@ -4832,20 +5169,24 @@ const MODULES = {
    child, the parent collapses (child takes its slot). New modules append
    to the root split. */
 function makeDefaultTree() {
+  // Three-column layout matching the analyst handoff:
+  //   left:   Graphs (top) + Engines (bottom)
+  //   middle: 3D View (top) + Map (bottom)
+  //   right:  Tabular (top) + PFD (bottom)
   return {
     type:'split', dir:'h', weights:[34, 33, 33],
     children:[
       { type:'split', dir:'v', weights:[60, 40], children:[
         { type:'leaf', module:'graphs' },
-        { type:'leaf', module:'tabular' },
+        { type:'leaf', module:'engines' },
       ]},
       { type:'split', dir:'v', weights:[60, 40], children:[
         { type:'leaf', module:'view3d' },
         { type:'leaf', module:'map' },
       ]},
       { type:'split', dir:'v', weights:[60, 40], children:[
+        { type:'leaf', module:'tabular' },
         { type:'leaf', module:'pfd' },
-        { type:'leaf', module:'engines' },
       ]},
     ]
   };
@@ -5621,11 +5962,59 @@ function renderTemplatesList() {
       applyMosaic();
     });
   });
-  wrap.querySelector("[data-save-template]").addEventListener("click", () => {
-    const name = prompt("Template name:");
+  wrap.querySelector("[data-save-template]").addEventListener("click", async () => {
+    const name = await openTemplateNamePrompt();
     if (!name) return;
     SAVED_LAYOUTS[name] = JSON.parse(JSON.stringify(LAYOUT));
     renderTemplatesList();
+  });
+}
+
+/* In-app replacement for window.prompt — returns a Promise that resolves to
+   the trimmed name, or null if the user cancels (Esc, backdrop, or Cancel). */
+function openTemplateNamePrompt() {
+  return new Promise(resolve => {
+    const modal = document.getElementById("template-modal");
+    const form  = document.getElementById("template-modal-form");
+    const input = document.getElementById("template-modal-input");
+    const save  = document.getElementById("template-modal-save");
+    if (!modal || !form || !input) { resolve(null); return; }
+
+    input.value = "";
+    save.disabled = true;
+    modal.setAttribute("aria-hidden", "false");
+    // Defer focus to the next frame so the modal is paintable before the
+    // input grabs focus — avoids a flicker on slower machines.
+    requestAnimationFrame(() => input.focus());
+
+    function close(result) {
+      modal.setAttribute("aria-hidden", "true");
+      input.removeEventListener("input", onInput);
+      form.removeEventListener("submit", onSubmit);
+      modal.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    }
+    function onInput() {
+      save.disabled = !input.value.trim();
+    }
+    function onSubmit(e) {
+      e.preventDefault();
+      const v = input.value.trim();
+      if (!v) return;
+      close(v);
+    }
+    function onBackdrop(e) {
+      if (e.target.dataset.modalDismiss !== undefined) close(null);
+    }
+    function onKey(e) {
+      if (e.key === "Escape") close(null);
+    }
+
+    input.addEventListener("input", onInput);
+    form.addEventListener("submit", onSubmit);
+    modal.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKey);
   });
 }
 
