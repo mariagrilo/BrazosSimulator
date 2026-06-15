@@ -1040,6 +1040,7 @@
     .module[data-module="engines"] { min-height: 220px; min-width: 280px; }
     .module[data-module="graphs"]  { min-height: 280px; min-width: 320px; }
     .module[data-module="tabular"] { min-height: 220px; min-width: 320px; }
+    .module[data-module="status"]  { min-height: 220px; min-width: 280px; }
     .module__title {
       font-family: var(--font-label);
       font-size: 11px;
@@ -3265,10 +3266,7 @@
       <!-- ── Module: Tabular ─────────────────────────────────────────── -->
       <section class="module" data-module="tabular">
         <header class="module__head">
-          <div class="module__tabs" data-module-tabs>
-            <button class="module__tab is-active" data-tab="tabular">Tabular</button>
-            <button class="module__tab" data-tab="status">Status</button>
-          </div>
+          <span class="module__title">Tabular</span>
           <div class="module__head-actions">
             <button class="module__drag" data-module-drag title="Drag to reorder">
               <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
@@ -3279,12 +3277,25 @@
           </div>
         </header>
         <div class="module__body">
-          <div class="module__tab-pane is-active" data-tab-pane="tabular">
-            <div class="tabular-scroll"><table class="tabular-table" id="tabular-table"></table></div>
+          <div class="tabular-scroll"><table class="tabular-table" id="tabular-table"></table></div>
+        </div>
+      </section>
+
+      <!-- ── Module: Status ──────────────────────────────────────────── -->
+      <section class="module" data-module="status">
+        <header class="module__head">
+          <span class="module__title">Status</span>
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
+              <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
+            </button>
+            <button class="module__hide" data-module-hide title="Hide">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
+            </button>
           </div>
-          <div class="module__tab-pane" data-tab-pane="status">
-            <div class="status-page" id="status-page"></div>
-          </div>
+        </header>
+        <div class="module__body">
+          <div class="status-page" id="status-page"></div>
         </div>
       </section>
 
@@ -3754,9 +3765,13 @@ function renderFinder() {
       meta:  pctToTime(ev.pct),
       color: ev.level===3?"#FF6019":ev.level===2?"#F9F46E":"#6DEB5D",
       onClick: () => {
-        seekFromFinder(ev.pct);
-        const pin = document.querySelector(`.event-marker[data-event-id="${ev.id}"]`);
-        if (pin) openEventPopover(ev.id, pin);
+        seekFromFinder(ev.pct, () => {
+          // Anchor the popover only after any zoom-out animation has run —
+          // otherwise the pin is still display:none and the popover would
+          // anchor to (0, 0).
+          const pin = document.querySelector(`.event-marker[data-event-id="${ev.id}"]`);
+          if (pin) openEventPopover(ev.id, pin);
+        });
       },
     })), "Event"));
   }
@@ -4859,16 +4874,28 @@ function setSelectedFinder(key) {
   });
 }
 
-/* — Seek from a finder item. If the target time is outside the current
-     zoom window, zoom out to the full flight first, then seek — so users
-     never end up with a playhead they can't see. */
-function seekFromFinder(pct) {
-  if (pct < STATE.viewStart || pct > STATE.viewEnd) {
-    STATE.viewStart = 0;
-    STATE.viewEnd   = 1;
-    applyZoom();
-  }
+/* — Seek from a finder item. If the target time is outside the current zoom
+     window, set the playhead immediately (it'll be off-screen) and animate
+     the view widening to the full flight — the playhead naturally comes
+     into view as the window expands to include it. onDone runs after the
+     animation (or immediately when no animation is needed) so callers like
+     event-popover anchoring can wait for the pin to be on-screen. */
+function seekFromFinder(pct, onDone) {
+  // Tiny tolerance so a KTI/KPV that sits exactly on a phase boundary
+  // (e.g. Top of Descent at 0.62, matching Cruise.endPct) reads as inside
+  // the current view and doesn't trigger an unwanted zoom-out.
+  const EPS = 1e-6;
+  const needsZoomOut = pct < STATE.viewStart - EPS || pct > STATE.viewEnd + EPS;
   seekTo(pct);
+  if (needsZoomOut) {
+    // Clear any phase selection — the active scope no longer matches the view.
+    if (STATE.selectedFinderKey && STATE.selectedFinderKey.startsWith('phase:')) {
+      setSelectedFinder(null);
+    }
+    animateViewTo(0, 1, 360, null, onDone);
+  } else if (onDone) {
+    onDone();
+  }
 }
 
 /* — Smoothly tween STATE.viewStart / viewEnd over `durationMs`. The selection
@@ -5055,6 +5082,12 @@ function setupTimeline() {
     }
     if (mode === 'pending' && Math.abs(x - startX) > DRAG_THRESHOLD) {
       mode = 'drag';
+      // The same rect element is reused for phase-click previews; a previous
+      // animation may have left it at opacity:0 with the is-preview class
+      // (which adds an opacity transition). Reset both so a fresh drag is
+      // immediately visible.
+      sel.classList.remove('is-preview');
+      sel.style.opacity = '1';
       sel.style.display = "block";
     }
     if (mode === 'drag') {
@@ -5155,6 +5188,7 @@ function setupPlayback() {
 const MODULES = {
   graphs:  { title: "Graphs" },
   tabular: { title: "Tabular" },
+  status:  { title: "Status" },
   view3d:  { title: "3D View" },
   map:     { title: "Map" },
   pfd:     { title: "Primary Flight Display" },
@@ -5169,10 +5203,10 @@ const MODULES = {
    child, the parent collapses (child takes its slot). New modules append
    to the root split. */
 function makeDefaultTree() {
-  // Three-column layout matching the analyst handoff:
-  //   left:   Graphs (top) + Engines (bottom)
-  //   middle: 3D View (top) + Map (bottom)
-  //   right:  Tabular (top) + PFD (bottom)
+  // Three-column analyst layout, saved from the user's reorganization:
+  //   left   (34%): Graphs (60%) + Engines (40%)
+  //   middle (33%): Tabular (37%) + 3D View (30%) + Map (33%)
+  //   right  (33%): Status (50%) + PFD (50%)
   return {
     type:'split', dir:'h', weights:[34, 33, 33],
     children:[
@@ -5180,12 +5214,13 @@ function makeDefaultTree() {
         { type:'leaf', module:'graphs' },
         { type:'leaf', module:'engines' },
       ]},
-      { type:'split', dir:'v', weights:[60, 40], children:[
+      { type:'split', dir:'v', weights:[37, 30, 33], children:[
+        { type:'leaf', module:'tabular' },
         { type:'leaf', module:'view3d' },
         { type:'leaf', module:'map' },
       ]},
-      { type:'split', dir:'v', weights:[60, 40], children:[
-        { type:'leaf', module:'tabular' },
+      { type:'split', dir:'v', weights:[50, 50], children:[
+        { type:'leaf', module:'status' },
         { type:'leaf', module:'pfd' },
       ]},
     ]
