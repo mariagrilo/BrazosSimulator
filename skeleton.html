@@ -120,30 +120,40 @@
       border-color: var(--color-accent);
     }
     body.is-secondary .timeline-bar__sec-hide { display: inline-flex; }
-    /* In-bar "+" button on the secondary timeline — sits next to the existing
-       × hide-timeline button. Visible only while the timeline is shown. */
+    /* In-bar "Add module" button on the secondary timeline — primary
+       affordance for populating the window, so it gets the accent fill
+       (matching the play button and current-time chip) rather than the
+       quieter outline used by × and reset-zoom. Visible only while the
+       timeline is shown. */
     .timeline-bar__sec-add {
       display: none;
       flex-shrink: 0;
       margin-left: 8px;
-      width: 22px; height: 22px;
+      height: 22px;
+      padding: 0 10px 0 8px;
+      gap: 6px;
       border-radius: 3px;
-      border: 1px solid var(--color-border);
-      background: transparent;
-      color: var(--color-text-dim);
+      border: 1px solid var(--color-accent);
+      background: var(--color-accent);
+      color: var(--color-bg);
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       cursor: pointer;
       align-items: center; justify-content: center;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
     .timeline-bar__sec-add:hover {
-      color: var(--color-accent);
-      border-color: var(--color-accent);
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent-dim);
     }
     .timeline-bar__sec-add.is-open {
-      color: var(--color-accent);
-      border-color: var(--color-accent);
-      background: rgba(40, 200, 185, 0.10);
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent-dim);
     }
+    .timeline-bar__sec-add svg { flex-shrink: 0; }
     body.is-secondary .timeline-bar__sec-add { display: inline-flex; }
     /* Re-order so the × hide button moves to the right of the + button. */
     body.is-secondary .timeline-bar__sec-hide { margin-left: 6px; }
@@ -184,6 +194,24 @@
       color: var(--color-accent);
       border-color: var(--color-accent);
       background: rgba(40, 200, 185, 0.10);
+    }
+    /* Filled accent variant — used by the "+ Add module" pill so it reads as
+       the primary action in the floating strip, alongside the quieter
+       Timeline ▼ revealer. */
+    .secondary-floating-pill--primary {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: var(--color-bg);
+    }
+    .secondary-floating-pill--primary:hover {
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent-dim);
+      color: var(--color-bg);
+    }
+    .secondary-floating-pill--primary.is-open {
+      background: var(--color-accent-dim);
+      border-color: var(--color-accent-dim);
+      color: var(--color-bg);
     }
 
     /* Add-module popover — position set inline at open time, anchored under
@@ -3381,7 +3409,8 @@
     <span class="timeline-bar__time-end" id="t-end">—</span>
     <span class="timeline-bar__duration" id="t-duration">&thinsp;—</span>
     <button class="timeline-bar__sec-add" id="sec-add-btn-bar" type="button" title="Add a module to this window">
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 1v8M1 5h8"/></svg>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 1v8M1 5h8"/></svg>
+      Add module
     </button>
     <button class="timeline-bar__sec-hide" id="sec-timeline-hide" type="button" title="Hide timeline">×</button>
 
@@ -3390,8 +3419,8 @@
        hidden. Holds the "+ Add module" pill alongside the "Timeline ▼"
        revealer so both controls are reachable without re-showing the bar. -->
   <div class="secondary-floating-strip" id="sec-floating-strip">
-    <button class="secondary-floating-pill" id="sec-add-btn-pill" type="button" title="Add a module to this window">
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 1v8M1 5h8"/></svg>
+    <button class="secondary-floating-pill secondary-floating-pill--primary" id="sec-add-btn-pill" type="button" title="Add a module to this window">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 1v8M1 5h8"/></svg>
       Add module
     </button>
     <button class="secondary-floating-pill" id="sec-timeline-show" type="button" title="Show timeline">
@@ -5925,7 +5954,16 @@ function renderModuleTogglesInto(root) {
         if (inAddPicker) closeSecAddPopover();
         return;
       }
-      const state = btn.dataset.state;
+      // Recompute state at click time. The data-state baked into the button
+      // can be stale if OTHER_MODULES updates between renders — without this
+      // recompute, a fast click on a "hidden" looking row could fall through
+      // to addModuleToTree even though the module is actually in the sibling
+      // window (which created visually-weird split wrappings in secondary).
+      const visible = new Set(getVisibleModules());
+      let state;
+      if (visible.has(key)) state = 'here';
+      else if (OTHER_MODULES.has(key)) state = 'other';
+      else state = 'hidden';
       let acted = false;
       if (state === 'other') {
         broadcast('request-back', { module: key });
