@@ -92,9 +92,61 @@
       grid-template-rows: 1fr;
     }
     body.is-secondary .topbar,
-    body.is-secondary .timeline-bar,
     body.is-secondary .flight-info-strip,
     body.is-secondary .sidebar { display: none; }
+    /* Secondary's timeline is shown by default but can be toggled off via the
+       × on the timeline bar. State persists in sessionStorage. */
+    body.is-secondary.is-secondary-no-timeline .timeline-bar { display: none; }
+    body.is-secondary .app { grid-template-rows: var(--timeline-height) 1fr; }
+    body.is-secondary.is-secondary-no-timeline .app { grid-template-rows: 1fr; }
+    /* × button on the right of the secondary timeline */
+    .timeline-bar__sec-hide {
+      display: none;
+      flex-shrink: 0;
+      margin-left: 8px;
+      width: 22px; height: 22px;
+      border-radius: 3px;
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-dim);
+      font-size: 12px;
+      line-height: 1;
+      cursor: pointer;
+      align-items: center; justify-content: center;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .timeline-bar__sec-hide:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    body.is-secondary .timeline-bar__sec-hide { display: inline-flex; }
+    /* Pill that appears at top when timeline is hidden, to bring it back. */
+    .secondary-timeline-show {
+      display: none;
+      position: fixed;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-dim);
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      gap: 6px;
+      align-items: center;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .secondary-timeline-show:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    body.is-secondary.is-secondary-no-timeline .secondary-timeline-show { display: inline-flex; }
 
     /* Pop-out button inside the Layout popover — opens the secondary window. */
     .layout-popover__divider {
@@ -1198,6 +1250,16 @@
       padding: 24px;
       text-align: center;
       pointer-events: none;
+      white-space: pre-line;
+    }
+    /* Secondary window starts empty; the sidebar is hidden so the standard
+       empty-state copy points the wrong way. Surface a friendlier message
+       that reflects how modules actually arrive here. */
+    body.is-secondary .mosaic--empty::after {
+      content: 'This window is empty.\AUse the → button on a module in window 1 to move it here.';
+      max-width: 380px;
+      margin: auto;
+      line-height: 1.7;
     }
 
     /* Module-visibility checklist inside the Layout popover */
@@ -1230,6 +1292,46 @@
       content: "✓"; font-size: 10px; font-weight: 700; line-height: 1;
     }
     .module-toggle__label { flex: 1; }
+    /* "in window 2" tag on rows whose module lives in the other window. */
+    .module-toggle__loc {
+      font-family: var(--font-label);
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+    /* Arrow that sends the module to the other window — only on "here" rows
+       when a sibling is connected. Click bubbles to the row handler which
+       routes by data-send-module presence. */
+    .module-toggle__send {
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-muted);
+      font-size: 12px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    .module-toggle__send:hover {
+      color: var(--color-bg);
+      background: var(--color-accent);
+    }
+    /* "in other window" rows: dimmer check, italic loc, but row still clickable
+       to pull the module back. */
+    .module-toggle.is-state-other {
+      color: var(--color-text-muted);
+      background: transparent;
+    }
+    .module-toggle.is-state-other .module-toggle__check {
+      border-style: dashed;
+      border-color: var(--color-accent);
+    }
+    .module-toggle.is-state-other:hover {
+      color: var(--color-text);
+      border-color: var(--color-accent);
+    }
 
     /* ─── Legacy panels styles (kept for any historical refs) ──────────────── */
     .panels {
@@ -3216,8 +3318,17 @@
     <!-- End time -->
     <span class="timeline-bar__time-end" id="t-end">—</span>
     <span class="timeline-bar__duration" id="t-duration">&thinsp;—</span>
+    <button class="timeline-bar__sec-hide" id="sec-timeline-hide" type="button" title="Hide timeline">×</button>
 
   </div>
+  <!-- Floating "Show timeline" pill — only rendered in secondary mode, shown
+       when the user has hidden the timeline (sessionStorage flag). -->
+  <button class="secondary-timeline-show" id="sec-timeline-show" type="button" title="Show timeline">
+    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 4l4 4 4-4"/>
+    </svg>
+    Timeline
+  </button>
 
   <!-- Flight info strip — expand/collapse from the timeline-bar flight name -->
   <div class="flight-info-strip" id="flight-info-strip" aria-hidden="true">
@@ -5623,6 +5734,9 @@ function applyMosaic() {
   applyFitContentSizing();
 
   renderModuleToggles();
+  // Tell the other window which modules currently live with us, so its Layout
+  // popover can mark them as "in window 2" (or vice versa).
+  if (typeof broadcastLayoutModules === 'function') broadcastLayoutModules();
 }
 
 // Modules whose pane should size to its content (height-axis only), instead of
@@ -5684,17 +5798,43 @@ function renderModuleToggles() {
   const root = $("#module-toggles");
   if (!root) return;
   const visible = new Set(getVisibleModules());
+  // 3-state per module — 'here' (in our LAYOUT), 'other' (in the other
+  // window's LAYOUT), 'hidden' (nowhere). The send-to-other arrow only
+  // appears for here-rows while a sibling window is connected.
+  const otherLabel = (typeof WINDOW_ROLE !== 'undefined' && WINDOW_ROLE === 'secondary') ? 'window 1' : 'window 2';
   root.innerHTML = Object.entries(MODULES).map(([key, m]) => {
-    const on = visible.has(key);
-    return `<button class="module-toggle${on?" is-on":""}" data-toggle-module="${key}">
+    let state = 'hidden';
+    if (visible.has(key)) state = 'here';
+    else if (OTHER_MODULES.has(key)) state = 'other';
+    const send = (state === 'here' && _siblingConnected)
+      ? `<span class="module-toggle__send" data-send-module="${key}" title="Move to ${otherLabel}">→</span>`
+      : '';
+    const loc  = (state === 'other')
+      ? `<span class="module-toggle__loc">in ${otherLabel}</span>`
+      : '';
+    return `<button class="module-toggle is-state-${state}${state==='here'?' is-on':''}" data-toggle-module="${key}" data-state="${state}">
       <span class="module-toggle__check"></span>
       <span class="module-toggle__label">${m.title}</span>
+      ${loc}${send}
     </button>`;
   }).join("");
   root.querySelectorAll("[data-toggle-module]").forEach(btn => {
     btn.addEventListener("click", e => {
       e.stopPropagation();
-      toggleModuleVisibility(btn.dataset.toggleModule);
+      const key = btn.dataset.toggleModule;
+      // Click on the send arrow → move to other window, regardless of row state.
+      if (e.target.closest('[data-send-module]')) {
+        if (typeof sendModuleToOtherWindow === 'function') sendModuleToOtherWindow(key);
+        return;
+      }
+      // Click on the row body — semantics depend on current state.
+      const state = btn.dataset.state;
+      if (state === 'other') {
+        // Ask the other window to give it back.
+        broadcast('request-back', { module: key });
+      } else {
+        toggleModuleVisibility(key);
+      }
     });
   });
 }
@@ -6738,6 +6878,9 @@ var BC = ('BroadcastChannel' in window) ? new BroadcastChannel('brazos-sim') : n
 var _siblingConnected = false;
 var _suppressBroadcast = false;
 var _secondaryWindowRef = null;
+// Modules currently visible in the *other* window. Used by the Layout
+// popover so the user can see (and reach) modules that aren't here.
+var OTHER_MODULES = new Set();
 
 function setSiblingConnected(v) {
   if (_siblingConnected === v) return;
@@ -6747,6 +6890,8 @@ function setSiblingConnected(v) {
   if (btn) btn.classList.toggle('is-active', v);
   const label = $("#popout-btn-label");
   if (label) label.textContent = v ? "Focus second window" : "Pop out second window";
+  if (!v) OTHER_MODULES = new Set();
+  if (typeof renderModuleToggles === 'function') renderModuleToggles();
 }
 
 function broadcast(type, extra) {
@@ -6763,6 +6908,11 @@ function broadcastState() {
     speed: STATE.speed,
     selectedFinderKey: STATE.selectedFinderKey,
   });
+}
+
+function broadcastLayoutModules() {
+  if (typeof getVisibleModules !== 'function') return;
+  broadcast('layout-modules', { modules: getVisibleModules() });
 }
 
 function paintPlayIcon() {
@@ -6784,9 +6934,23 @@ if (BC) {
         // Primary seeds the newcomer with current state so playback / zoom /
         // selection match from the first frame.
         if (WINDOW_ROLE === 'primary') broadcastState();
+        // Both sides share their module list so the Layout popover knows
+        // which modules live where.
+        broadcastLayoutModules();
         break;
       case 'hello-ack':
         setSiblingConnected(true);
+        broadcastLayoutModules();
+        break;
+      case 'layout-modules':
+        OTHER_MODULES = new Set(m.modules || []);
+        if (typeof renderModuleToggles === 'function') renderModuleToggles();
+        break;
+      case 'request-back':
+        // The other window is asking us to give it back module `m.module`.
+        if (typeof getVisibleModules === 'function' && getVisibleModules().includes(m.module)) {
+          sendModuleToOtherWindow(m.module);
+        }
         break;
       case 'goodbye':
         setSiblingConnected(false);
@@ -6861,13 +7025,13 @@ if (WINDOW_ROLE === 'primary') {
      the tree if necessary), then asks the other window to append it. The
      module's DOM lives in each window's #__module-pool independently — we're
      only moving the layout slot, not the element itself. */
-function removeModuleFromTree(node, moduleName) {
+function pruneModuleFromTree(node, moduleName) {
   if (!node) return null;
   if (node.type === 'leaf') return node.module === moduleName ? null : node;
   const newChildren = [];
   const newWeights  = [];
   node.children.forEach((c, i) => {
-    const cleaned = removeModuleFromTree(c, moduleName);
+    const cleaned = pruneModuleFromTree(c, moduleName);
     if (cleaned) { newChildren.push(cleaned); newWeights.push(node.weights[i]); }
   });
   if (newChildren.length === 0) return null;
@@ -6893,7 +7057,7 @@ function receiveTransferredModule(moduleName) {
 function sendModuleToOtherWindow(moduleName) {
   if (!_siblingConnected) return;
   pushLayoutUndo();
-  const next = removeModuleFromTree(LAYOUT, moduleName);
+  const next = pruneModuleFromTree(LAYOUT, moduleName);
   LAYOUT = next || { type:'split', dir:'h', weights:[], children:[] };
   applyMosaic();
   broadcast('transfer', { module: moduleName, toRole: (WINDOW_ROLE === 'primary' ? 'secondary' : 'primary') });
@@ -6917,6 +7081,21 @@ document.querySelectorAll(".module").forEach(m => {
 if (WINDOW_ROLE === 'secondary') {
   LAYOUT = { type:'split', dir:'h', weights:[], children:[] };
   applyMosaic();
+  // Restore timeline-hidden state from sessionStorage so a reload preserves
+  // the user's choice.
+  if (sessionStorage.getItem('brazos:sec-no-timeline') === '1') {
+    document.body.classList.add('is-secondary-no-timeline');
+  }
+  const hideBtn = $("#sec-timeline-hide");
+  const showBtn = $("#sec-timeline-show");
+  if (hideBtn) hideBtn.addEventListener("click", () => {
+    document.body.classList.add('is-secondary-no-timeline');
+    sessionStorage.setItem('brazos:sec-no-timeline', '1');
+  });
+  if (showBtn) showBtn.addEventListener("click", () => {
+    document.body.classList.remove('is-secondary-no-timeline');
+    sessionStorage.removeItem('brazos:sec-no-timeline');
+  });
 }
 
 update();
