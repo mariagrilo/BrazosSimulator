@@ -6799,7 +6799,13 @@ function openInlinePicker(anchor, items, onPick) {
    timeline, or sidebar) so the user can dedicate it to a single set of
    modules on a second monitor. Detection happens BEFORE any rendering so the
    shell is laid out correctly from the first paint. */
-const WINDOW_ROLE = new URLSearchParams(location.search).get('window') === 'secondary' ? 'secondary' : 'primary';
+// Support both ?window=secondary (clean URL) and #window=secondary (hash
+// fragment). Hash mode is required when running via htmlpreview.github.io —
+// that proxy uses the query string for the source GitHub URL, so a real
+// query param would collide with it.
+const _hashFlag = /(?:^|&)window=secondary(?:&|$)/.test((location.hash || '').replace(/^#/, ''));
+const _queryFlag = new URLSearchParams(location.search).get('window') === 'secondary';
+const WINDOW_ROLE = (_queryFlag || _hashFlag) ? 'secondary' : 'primary';
 if (WINDOW_ROLE === 'secondary') document.body.classList.add('is-secondary');
 
 renderTimeline();
@@ -7031,8 +7037,13 @@ if (WINDOW_ROLE === 'primary') {
     }
     const w = Math.round(window.screen.availWidth * 0.7);
     const h = Math.round(window.screen.availHeight * 0.75);
+    // Use the FULL current URL with a hash flag — htmlpreview.github.io
+    // serves the page through its query string, so adding another `?` query
+    // param would replace the source URL. A hash fragment stays client-side
+    // and is the only safe way to round-trip through that proxy.
+    const baseHref = location.href.split('#')[0];
     _secondaryWindowRef = window.open(
-      location.pathname + '?window=secondary',
+      baseHref + '#window=secondary',
       'brazos-secondary',
       `width=${w},height=${h}`,
     );
