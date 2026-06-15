@@ -148,6 +148,67 @@
     }
     body.is-secondary.is-secondary-no-timeline .secondary-timeline-show { display: inline-flex; }
 
+    /* Floating "+ Add module" pill — top-right of the mosaic in secondary
+       mode. Sits below the timeline-bar when shown, or near the top edge when
+       the bar is hidden. Click opens a popover with the 3-state module list. */
+    .secondary-add-pill {
+      display: none;
+      position: fixed;
+      top: calc(var(--timeline-height) + 6px);
+      right: 12px;
+      z-index: 60;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-dim);
+      padding: 5px 11px 5px 9px;
+      border-radius: 3px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .secondary-add-pill:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+    .secondary-add-pill.is-open {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+      background: rgba(40, 200, 185, 0.10);
+    }
+    .secondary-add-pill svg { flex-shrink: 0; }
+    body.is-secondary .secondary-add-pill { display: inline-flex; }
+    body.is-secondary.is-secondary-no-timeline .secondary-add-pill { top: 6px; }
+
+    .secondary-add-popover {
+      display: none;
+      position: fixed;
+      top: calc(var(--timeline-height) + 38px);
+      right: 12px;
+      z-index: 60;
+      min-width: 240px;
+      max-width: 320px;
+      background: var(--color-surface-hi);
+      border: 1px solid var(--color-accent);
+      border-radius: 6px;
+      padding: 10px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    .secondary-add-popover[aria-hidden="false"] { display: block; }
+    body.is-secondary.is-secondary-no-timeline .secondary-add-popover { top: 38px; }
+    .secondary-add-popover__title {
+      font-family: var(--font-label);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+
     /* Pop-out button inside the Layout popover — opens the secondary window. */
     .layout-popover__divider {
       height: 1px;
@@ -1256,7 +1317,7 @@
        empty-state copy points the wrong way. Surface a friendlier message
        that reflects how modules actually arrive here. */
     body.is-secondary .mosaic--empty::after {
-      content: 'This window is empty.\AUse the → button on a module in window 1 to move it here.';
+      content: 'This window is empty.\AUse "+ Add module" to bring one over from window 1.';
       max-width: 380px;
       margin: auto;
       line-height: 1.7;
@@ -3329,6 +3390,20 @@
     </svg>
     Timeline
   </button>
+
+  <!-- Floating "+ Add module" pill — secondary windows only. Anchors to the
+       top-right of the mosaic and opens a small popover with the same
+       3-state module picker as the primary's Layout popover. -->
+  <button class="secondary-add-pill" id="sec-add-btn" type="button" title="Add a module to this window">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+      <path d="M5 1v8M1 5h8"/>
+    </svg>
+    Add module
+  </button>
+  <div class="secondary-add-popover" id="sec-add-popover" aria-hidden="true">
+    <div class="secondary-add-popover__title">Add module to this window</div>
+    <div class="module-toggles" id="sec-add-toggles"></div>
+  </div>
 
   <!-- Flight info strip — expand/collapse from the timeline-bar flight name -->
   <div class="flight-info-strip" id="flight-info-strip" aria-hidden="true">
@@ -5805,8 +5880,17 @@ function renderTreeNode(node, container) {
 }
 
 function renderModuleToggles() {
-  const root = $("#module-toggles");
-  if (!root) return;
+  // Renders the 3-state module picker into every container that has it:
+  // the Layout sidebar popover (primary) and the floating "+ Add module"
+  // popover (secondary). Both stay in sync because every layout change
+  // flows through here.
+  ['#module-toggles', '#sec-add-toggles'].forEach(sel => {
+    const root = $(sel);
+    if (root) renderModuleTogglesInto(root);
+  });
+}
+
+function renderModuleTogglesInto(root) {
   const visible = new Set(getVisibleModules());
   // 3-state per module — 'here' (in our LAYOUT), 'other' (in the other
   // window's LAYOUT), 'hidden' (nowhere). The send-to-other arrow only
@@ -5832,21 +5916,41 @@ function renderModuleToggles() {
     btn.addEventListener("click", e => {
       e.stopPropagation();
       const key = btn.dataset.toggleModule;
-      // Click on the send arrow → move to other window, regardless of row state.
+      const inAddPicker = !!btn.closest('#sec-add-popover');
       if (e.target.closest('[data-send-module]')) {
         if (typeof sendModuleToOtherWindow === 'function') sendModuleToOtherWindow(key);
+        if (inAddPicker) closeSecAddPopover();
         return;
       }
-      // Click on the row body — semantics depend on current state.
       const state = btn.dataset.state;
+      let acted = false;
       if (state === 'other') {
-        // Ask the other window to give it back.
         broadcast('request-back', { module: key });
-      } else {
+        acted = true;
+      } else if (state === 'hidden') {
         toggleModuleVisibility(key);
+        acted = true;
+      } else if (state === 'here') {
+        // Click on a "here" row in the Layout popover toggles to hidden;
+        // in the secondary add-picker, it's a no-op (the module is already
+        // in this window).
+        if (!inAddPicker) {
+          toggleModuleVisibility(key);
+          acted = true;
+        }
       }
+      if (inAddPicker && acted) closeSecAddPopover();
     });
   });
+}
+
+// Close the secondary "+ Add module" popover if it's currently open. Safe
+// to call even when the popover doesn't exist (primary window).
+function closeSecAddPopover() {
+  const pop = document.getElementById('sec-add-popover');
+  const btn = document.getElementById('sec-add-btn');
+  if (pop) pop.setAttribute('aria-hidden', 'true');
+  if (btn) btn.classList.remove('is-open');
 }
 
 function toggleModuleVisibility(key) {
@@ -7129,6 +7233,44 @@ if (WINDOW_ROLE === 'secondary') {
     document.body.classList.remove('is-secondary-no-timeline');
     sessionStorage.removeItem('brazos:sec-no-timeline');
   });
+
+  // "+ Add module" pill: toggle the popover on click; the picker contents
+  // are rendered by renderModuleToggles whenever any layout changes, so we
+  // just have to manage open/close. Click-outside and Esc dismiss; clicking
+  // a row inside the popover triggers the existing module-toggle handler and
+  // we close once a layout change has flowed back through applyMosaic.
+  const addBtn = $("#sec-add-btn");
+  const addPop = $("#sec-add-popover");
+  if (addBtn && addPop) {
+    function closeAddPop() {
+      addPop.setAttribute('aria-hidden', 'true');
+      addBtn.classList.remove('is-open');
+      document.removeEventListener('click', onOutside, true);
+      document.removeEventListener('keydown', onEsc);
+    }
+    function onOutside(e) {
+      if (!addPop.contains(e.target) && !addBtn.contains(e.target)) closeAddPop();
+    }
+    function onEsc(e) { if (e.key === 'Escape') closeAddPop(); }
+    addBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const opening = addPop.getAttribute('aria-hidden') !== 'false';
+      if (opening) {
+        addPop.setAttribute('aria-hidden', 'false');
+        addBtn.classList.add('is-open');
+        // Defer wiring the global listeners so the click that opened the
+        // popover isn't itself caught as an outside click.
+        setTimeout(() => {
+          document.addEventListener('click', onOutside, true);
+          document.addEventListener('keydown', onEsc);
+        }, 0);
+      } else {
+        closeAddPop();
+      }
+    });
+    // Row clicks call closeSecAddPopover() themselves (their stopPropagation
+    // prevents bubbling to this popover, so a listener here would never fire).
+  }
 }
 
 update();
