@@ -5955,31 +5955,35 @@ function renderModuleTogglesInto(root) {
         if (inAddPicker) closeSecAddPopover();
         return;
       }
-      // Recompute state at click time. The data-state baked into the button
-      // can be stale if OTHER_MODULES updates between renders — without this
-      // recompute, a fast click on a "hidden" looking row could fall through
-      // to addModuleToTree even though the module is actually in the sibling
-      // window (which created visually-weird split wrappings in secondary).
+      // Recompute live state at click time — the data-state attribute can
+      // be stale if OTHER_MODULES updated between renders.
       const visible = new Set(getVisibleModules());
       let state;
       if (visible.has(key)) state = 'here';
       else if (OTHER_MODULES.has(key)) state = 'other';
       else state = 'hidden';
       let acted = false;
-      if (state === 'other') {
-        broadcast('request-back', { module: key });
-        acted = true;
-      } else if (state === 'hidden') {
-        toggleModuleVisibility(key);
-        acted = true;
-      } else if (state === 'here') {
-        // Click on a "here" row in the Layout popover toggles to hidden;
-        // in the secondary add-picker, it's a no-op (the module is already
-        // in this window).
-        if (!inAddPicker) {
-          toggleModuleVisibility(key);
+      if (inAddPicker) {
+        // Secondary add-picker semantics: "I want this module here". For both
+        // 'other' (in sibling) and 'hidden' (not in OTHER_MODULES) cases we
+        // append locally and ask the sibling to give it up — the sibling's
+        // request-back handler is a no-op if it doesn't have the module, and
+        // the transfer it sends back is deduped by appendModuleToLayout. The
+        // picker never uses toggleModuleVisibility, so LAST_POSITION's
+        // primary-layout wrappings can't leak into the secondary's tree.
+        if (state !== 'here') {
+          appendModuleToLayout(key);
+          if (_siblingConnected) broadcast('request-back', { module: key });
           acted = true;
         }
+      } else if (state === 'other') {
+        broadcast('request-back', { module: key });
+        acted = true;
+      } else {
+        // Primary Layout popover: 'here' toggles to hidden, 'hidden' restores
+        // to LAST_POSITION home — same behaviour as before this refactor.
+        toggleModuleVisibility(key);
+        acted = true;
       }
       if (inAddPicker && acted) closeSecAddPopover();
     });
@@ -7220,7 +7224,13 @@ function pruneModuleFromTree(node, moduleName) {
   return Object.assign({}, node, { children: newChildren, weights: newWeights });
 }
 
-function receiveTransferredModule(moduleName) {
+// Append a module to this window's LAYOUT using a simple flat strategy —
+// never consults LAST_POSITION (those are primary-window homes and produce
+// nonsensical wrappings when applied to the secondary's stripped tree).
+function appendModuleToLayout(moduleName) {
+  // Dedup — if the module is already visible here, no-op. Prevents double
+  // adds when a local append races with a transfer arriving from the sibling.
+  if (getVisibleModules().includes(moduleName)) return false;
   pushLayoutUndo();
   const leaf = { type:'leaf', module: moduleName };
   if (!LAYOUT || (LAYOUT.type === 'split' && LAYOUT.children.length === 0)) {
@@ -7233,6 +7243,13 @@ function receiveTransferredModule(moduleName) {
     LAYOUT = { type:'split', dir:'h', weights:[50, 50], children:[LAYOUT, leaf] };
   }
   applyMosaic();
+  return true;
+}
+
+// Network entry point — kept as a thin shim so existing callers (BC handler)
+// keep their name, but the work is shared with the picker.
+function receiveTransferredModule(moduleName) {
+  appendModuleToLayout(moduleName);
 }
 
 function sendModuleToOtherWindow(moduleName) {
