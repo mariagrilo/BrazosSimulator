@@ -128,10 +128,11 @@
     .timeline-bar__sec-add {
       display: none;
       flex-shrink: 0;
-      margin-left: 8px;
-      height: 22px;
-      padding: 0 10px 0 8px;
-      gap: 6px;
+      margin-left: 16px;
+      margin-right: 4px;
+      height: 24px;
+      padding: 0 12px 0 10px;
+      gap: 7px;
       border-radius: 3px;
       border: 1px solid var(--color-accent);
       background: var(--color-accent);
@@ -156,7 +157,7 @@
     .timeline-bar__sec-add svg { flex-shrink: 0; }
     body.is-secondary .timeline-bar__sec-add { display: inline-flex; }
     /* Re-order so the × hide button moves to the right of the + button. */
-    body.is-secondary .timeline-bar__sec-hide { margin-left: 6px; }
+    body.is-secondary .timeline-bar__sec-hide { margin-left: 10px; }
 
     /* Floating strip — two pills side by side at top center, shown only when
        the timeline is hidden in secondary mode. */
@@ -7303,13 +7304,17 @@ if (WINDOW_ROLE === 'secondary') {
     addPop.setAttribute('aria-hidden', 'false');
     addTriggers.forEach(b => b.classList.toggle('is-open', b === trigger));
     _activeAddTrigger = trigger;
-    // Position the popover under the trigger. Right-align with the trigger's
-    // right edge when there's room; otherwise clamp to the viewport.
+    // Anchor under the trigger. If the trigger sits inside the timeline-bar,
+    // use the BAR's bottom (not the button's) so the bar doesn't visually
+    // clip the popover — the button is vertically centered in a 70px-tall
+    // bar, so button.bottom is well above bar.bottom.
     const r = trigger.getBoundingClientRect();
+    const bar = trigger.closest('.timeline-bar');
+    const topPx = (bar ? bar.getBoundingClientRect().bottom : r.bottom) + 6;
     const popW = addPop.offsetWidth || 260;
     let right = Math.max(8, window.innerWidth - r.right);
     if (right + popW > window.innerWidth - 8) right = 8;
-    addPop.style.top   = (r.bottom + 6) + 'px';
+    addPop.style.top   = topPx + 'px';
     addPop.style.right = right + 'px';
     addPop.style.left  = 'auto';
     setTimeout(() => {
