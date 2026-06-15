@@ -85,6 +85,70 @@
       height: 100vh;
       overflow: hidden;
     }
+    /* Secondary popout window — strips topbar/timeline/sidebar so only the
+       mosaic of modules is visible. The body picks up .is-secondary when the
+       URL flag ?window=secondary is present (see boot JS). */
+    body.is-secondary .app {
+      grid-template-rows: 1fr;
+    }
+    body.is-secondary .topbar,
+    body.is-secondary .timeline-bar,
+    body.is-secondary .flight-info-strip,
+    body.is-secondary .sidebar { display: none; }
+
+    /* Pop-out button in the topbar — opens the secondary window. */
+    .topbar__popout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-dim);
+      padding: 5px 10px;
+      border-radius: 3px;
+      font-family: var(--font-label);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-right: 10px;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .topbar__popout:hover {
+      color: var(--color-text);
+      border-color: var(--color-accent);
+    }
+    .topbar__popout.is-active {
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+      background: rgba(40, 200, 185, 0.08);
+    }
+    .topbar__popout svg { display: block; }
+
+    /* "Send to other window" button per module header — mirrors the look of
+       the existing drag/hide buttons. Hidden in secondary windows that don't
+       have a sibling to talk to (handled in JS at boot). */
+    .module__send-other {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-dim);
+      background: transparent; border: none;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .module__send-other:hover {
+      color: var(--color-accent);
+      background: var(--color-surface-hi);
+    }
+    .module__send-other:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--color-accent);
+    }
+    /* Don't render the move button until JS confirms a sibling window exists,
+       so it doesn't appear as a dead control on a single-window setup. */
+    body:not(.has-sibling-window) .module__send-other { display: none; }
 
     /* Flight info strip — collapsed by default, expands on flight-name click */
     .flight-info-strip {
@@ -3082,6 +3146,12 @@
       <a class="topbar__nav-item" href="#">Specifications</a>
     </nav>
     <div class="topbar__divider"></div>
+    <button class="topbar__popout" id="popout-btn" type="button" title="Open a second window — modules can be split across them">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 1h4v4M13 1L7 7M11 8.5V13H1V3h4.5"/>
+      </svg>
+      Pop out
+    </button>
     <div class="topbar__user">
       <div>
         <div class="topbar__operator">Operator Name</div>
@@ -4812,6 +4882,7 @@ function set(id, val){ const e = document.getElementById(id); if (e) e.textConte
 function seekTo(pct) {
   STATE.pct = Math.max(0, Math.min(1, pct));
   update();
+  if (typeof broadcastState === 'function') broadcastState();
 }
 
 /* ─── Zoom: re-flow everything that depends on the visible timeline window.
@@ -4872,6 +4943,7 @@ function setSelectedFinder(key) {
   $$('.finder-item').forEach(it => {
     it.classList.toggle('is-selected', it.dataset.finderKey === key);
   });
+  if (typeof broadcastState === 'function') broadcastState();
 }
 
 /* — Seek from a finder item. If the target time is outside the current zoom
@@ -4946,6 +5018,7 @@ function animateViewTo(targetStart, targetEnd, durationMs, trackedPhase, onDone)
         chartPlots.forEach(c => c.classList.remove('is-zooming'));
       });
       applyZoomTimeline();
+      if (typeof broadcastState === 'function') broadcastState();
       if (onDone) onDone();
     }
   }
@@ -5112,6 +5185,7 @@ function setupTimeline() {
         STATE.viewEnd   = viewPctToFlight(b);
         applyZoom();
         update();
+        if (typeof broadcastState === 'function') broadcastState();
       }
     } else if (mode === 'pending') {
       // Plain click on the track — seek to the clicked position.
@@ -5129,6 +5203,7 @@ function setupTimeline() {
       STATE.viewEnd   = 1;
       applyZoom();
       update();
+      if (typeof broadcastState === 'function') broadcastState();
       // Reset clears any active phase scope so the dot-color in the finder
       // matches the actual state of the timeline.
       if (STATE.selectedFinderKey && STATE.selectedFinderKey.startsWith('phase:')) {
@@ -5149,35 +5224,53 @@ function setupPlayback() {
   const btn = $("#btn-play");
   const icon = $("#btn-play-icon");
   function paint() {
+    if (!icon) return;
     icon.innerHTML = STATE.playing
       ? '<path d="M2 1.5h3v11H2zM7 1.5h3v11H7z"/>'
       : '<path d="M1.5 1.5l9 5.5-9 5.5V1.5z"/>';
   }
-  btn.addEventListener("click", () => { STATE.playing = !STATE.playing; paint(); });
-  $("#playback-speed").addEventListener("change", e => STATE.speed = parseFloat(e.target.value));
 
-  $("#btn-prev").addEventListener("click", () => {
+  if (btn) btn.addEventListener("click", () => {
+    STATE.playing = !STATE.playing;
+    paint();
+    if (typeof broadcastState === 'function') broadcastState();
+  });
+  const speedSel = $("#playback-speed");
+  if (speedSel) speedSel.addEventListener("change", e => {
+    STATE.speed = parseFloat(e.target.value);
+    if (typeof broadcastState === 'function') broadcastState();
+  });
+
+  const prevBtn = $("#btn-prev");
+  if (prevBtn) prevBtn.addEventListener("click", () => {
     const prev = [...FLIGHT.events].reverse().find(e => e.pct < STATE.pct - 0.001);
     if (prev) seekTo(prev.pct);
   });
-  $("#btn-next").addEventListener("click", () => {
+  const nextBtn = $("#btn-next");
+  if (nextBtn) nextBtn.addEventListener("click", () => {
     const nxt = FLIGHT.events.find(e => e.pct > STATE.pct + 0.001);
     if (nxt) seekTo(nxt.pct);
   });
 
-  let last = performance.now();
-  function loop(now) {
-    const dt = (now - last)/1000;
-    last = now;
-    if (STATE.playing) {
-      const dPct = (dt * STATE.speed) / FLIGHT.durationSec;
-      STATE.pct += dPct;
-      if (STATE.pct >= 1) { STATE.pct = 1; STATE.playing = false; paint(); }
-      update();
+  // Only the primary window advances the playback clock — otherwise both
+  // windows would tick STATE.pct independently and the playhead would drift.
+  // The secondary just receives broadcast updates from primary.
+  if (typeof WINDOW_ROLE === 'undefined' || WINDOW_ROLE === 'primary') {
+    let last = performance.now();
+    function loop(now) {
+      const dt = (now - last)/1000;
+      last = now;
+      if (STATE.playing) {
+        const dPct = (dt * STATE.speed) / FLIGHT.durationSec;
+        STATE.pct += dPct;
+        if (STATE.pct >= 1) { STATE.pct = 1; STATE.playing = false; paint(); }
+        update();
+        if (typeof broadcastState === 'function') broadcastState();
+      }
+      requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
   }
-  requestAnimationFrame(loop);
   paint();
 }
 
@@ -6546,6 +6639,14 @@ function openInlinePicker(anchor, items, onPick) {
 /* ──────────────────────────────────────────────────────────────────────────
    BOOT
    ────────────────────────────────────────────────────────────────────────── */
+
+/* Multi-window: a popped-out secondary window strips its chrome (no topbar,
+   timeline, or sidebar) so the user can dedicate it to a single set of
+   modules on a second monitor. Detection happens BEFORE any rendering so the
+   shell is laid out correctly from the first paint. */
+const WINDOW_ROLE = new URLSearchParams(location.search).get('window') === 'secondary' ? 'secondary' : 'primary';
+if (WINDOW_ROLE === 'secondary') document.body.classList.add('is-secondary');
+
 renderTimeline();
 renderFlightInfoStrip();
 renderFinder();
@@ -6618,6 +6719,198 @@ setupMosaicResize();
 setupMosaicReorder();
 setupModuleTabs();
 renderTemplatesList();
+
+/* ─── Multi-window state sync ─────────────────────────────────────────────
+   The primary window owns the playback clock (rAF loop runs only there). Both
+   windows broadcast meaningful STATE changes (pct, view, playing, speed,
+   selected finder item) through a same-origin BroadcastChannel. The receiver
+   applies the incoming state and re-renders without echoing back, gated by a
+   suppression flag so we don't loop. Per-module "→" buttons (added below)
+   transfer a module from this window's LAYOUT to the other's. */
+// var so these are hoisted — broadcast() may be reached via seekTo() / setSelectedFinder()
+// before the assignment below if other init code seeks during boot.
+var BC = ('BroadcastChannel' in window) ? new BroadcastChannel('brazos-sim') : null;
+var _siblingConnected = false;
+var _suppressBroadcast = false;
+var _secondaryWindowRef = null;
+
+function setSiblingConnected(v) {
+  if (_siblingConnected === v) return;
+  _siblingConnected = v;
+  document.body.classList.toggle('has-sibling-window', v);
+  const btn = $("#popout-btn");
+  if (btn) btn.classList.toggle('is-active', v);
+}
+
+function broadcast(type, extra) {
+  if (!BC || _suppressBroadcast) return;
+  BC.postMessage(Object.assign({type, fromRole: WINDOW_ROLE}, extra || {}));
+}
+
+function broadcastState() {
+  broadcast('state', {
+    pct: STATE.pct,
+    viewStart: STATE.viewStart,
+    viewEnd: STATE.viewEnd,
+    playing: STATE.playing,
+    speed: STATE.speed,
+    selectedFinderKey: STATE.selectedFinderKey,
+  });
+}
+
+function paintPlayIcon() {
+  const icon = $("#btn-play-icon");
+  if (!icon) return;
+  icon.innerHTML = STATE.playing
+    ? '<path d="M2 1.5h3v11H2zM7 1.5h3v11H7z"/>'
+    : '<path d="M1.5 1.5l9 5.5-9 5.5V1.5z"/>';
+}
+
+if (BC) {
+  BC.onmessage = (e) => {
+    const m = e.data;
+    if (!m || !m.type || m.fromRole === WINDOW_ROLE) return;
+    switch (m.type) {
+      case 'hello':
+        setSiblingConnected(true);
+        broadcast('hello-ack');
+        // Primary seeds the newcomer with current state so playback / zoom /
+        // selection match from the first frame.
+        if (WINDOW_ROLE === 'primary') broadcastState();
+        break;
+      case 'hello-ack':
+        setSiblingConnected(true);
+        break;
+      case 'goodbye':
+        setSiblingConnected(false);
+        break;
+      case 'state':
+        _suppressBroadcast = true;
+        STATE.pct        = m.pct;
+        STATE.viewStart  = m.viewStart;
+        STATE.viewEnd    = m.viewEnd;
+        STATE.playing    = m.playing;
+        STATE.speed      = m.speed;
+        // Selected finder key — keep DOM in sync if we have a finder.
+        if (STATE.selectedFinderKey !== m.selectedFinderKey) {
+          setSelectedFinder(m.selectedFinderKey);
+        }
+        applyZoom();
+        update();
+        paintPlayIcon();
+        const speedSel = $("#playback-speed");
+        if (speedSel) speedSel.value = String(STATE.speed);
+        _suppressBroadcast = false;
+        break;
+      case 'transfer':
+        if (m.toRole !== WINDOW_ROLE) break;
+        receiveTransferredModule(m.module);
+        break;
+      case 'reload':
+        // Primary signals it's reloading on close — secondary follows so both
+        // come back up with fresh code. Only the secondary acts on this.
+        if (WINDOW_ROLE === 'secondary') location.reload();
+        break;
+    }
+  };
+  // Announce ourselves. If a sibling is up, it'll hello-ack and we light up.
+  broadcast('hello');
+}
+
+window.addEventListener('beforeunload', () => {
+  if (!BC) return;
+  // beforeunload can't reliably await, but BroadcastChannel.postMessage is
+  // synchronous-fire-and-forget so the message lands before the page goes.
+  BC.postMessage({type:'goodbye', fromRole: WINDOW_ROLE});
+  if (WINDOW_ROLE === 'primary' && _siblingConnected) {
+    BC.postMessage({type:'reload', fromRole: WINDOW_ROLE});
+  }
+});
+
+/* — Pop-out button. Primary only; in secondary mode the button is hidden via
+     CSS (and clicking it would just open a third clone, which doesn't help). */
+if (WINDOW_ROLE === 'primary') {
+  const btn = $("#popout-btn");
+  if (btn) btn.addEventListener("click", () => {
+    if (_secondaryWindowRef && !_secondaryWindowRef.closed) {
+      _secondaryWindowRef.focus();
+      return;
+    }
+    const w = Math.round(window.screen.availWidth * 0.7);
+    const h = Math.round(window.screen.availHeight * 0.75);
+    _secondaryWindowRef = window.open(
+      location.pathname + '?window=secondary',
+      'brazos-secondary',
+      `width=${w},height=${h}`,
+    );
+  });
+} else {
+  // Secondary doesn't get its own pop-out; one sibling is enough.
+  const btn = $("#popout-btn");
+  if (btn) btn.style.display = 'none';
+}
+
+/* — Module transfer. Removes the module from this window's LAYOUT (collapsing
+     the tree if necessary), then asks the other window to append it. The
+     module's DOM lives in each window's #__module-pool independently — we're
+     only moving the layout slot, not the element itself. */
+function removeModuleFromTree(node, moduleName) {
+  if (!node) return null;
+  if (node.type === 'leaf') return node.module === moduleName ? null : node;
+  const newChildren = [];
+  const newWeights  = [];
+  node.children.forEach((c, i) => {
+    const cleaned = removeModuleFromTree(c, moduleName);
+    if (cleaned) { newChildren.push(cleaned); newWeights.push(node.weights[i]); }
+  });
+  if (newChildren.length === 0) return null;
+  if (newChildren.length === 1) return newChildren[0];
+  return Object.assign({}, node, { children: newChildren, weights: newWeights });
+}
+
+function receiveTransferredModule(moduleName) {
+  pushLayoutUndo();
+  const leaf = { type:'leaf', module: moduleName };
+  if (!LAYOUT || (LAYOUT.type === 'split' && LAYOUT.children.length === 0)) {
+    LAYOUT = leaf;
+  } else if (LAYOUT.type === 'split' && LAYOUT.dir === 'h') {
+    LAYOUT.children.push(leaf);
+    const n = LAYOUT.children.length;
+    LAYOUT.weights = Array(n).fill(100/n);
+  } else {
+    LAYOUT = { type:'split', dir:'h', weights:[50, 50], children:[LAYOUT, leaf] };
+  }
+  applyMosaic();
+}
+
+function sendModuleToOtherWindow(moduleName) {
+  if (!_siblingConnected) return;
+  pushLayoutUndo();
+  const next = removeModuleFromTree(LAYOUT, moduleName);
+  LAYOUT = next || { type:'split', dir:'h', weights:[], children:[] };
+  applyMosaic();
+  broadcast('transfer', { module: moduleName, toRole: (WINDOW_ROLE === 'primary' ? 'secondary' : 'primary') });
+}
+
+/* — Inject a "→" button into every module header. Hidden via CSS until a
+     sibling window connects. */
+document.querySelectorAll(".module").forEach(m => {
+  const actions = m.querySelector(".module__head-actions");
+  const hide    = m.querySelector(".module__hide");
+  if (!actions || actions.querySelector(".module__send-other")) return;
+  const btn = document.createElement("button");
+  btn.className = "module__send-other";
+  btn.title = "Move to the other window";
+  btn.innerHTML = '<svg width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1l4 4-4 4M1 5h12"/></svg>';
+  btn.addEventListener("click", () => sendModuleToOtherWindow(m.dataset.module));
+  if (hide) actions.insertBefore(btn, hide); else actions.appendChild(btn);
+});
+
+/* — Secondary boots empty; modules arrive via "→" transfers from primary. */
+if (WINDOW_ROLE === 'secondary') {
+  LAYOUT = { type:'split', dir:'h', weights:[], children:[] };
+  applyMosaic();
+}
 
 update();
 </script>
