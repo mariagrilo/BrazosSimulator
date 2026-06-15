@@ -5379,9 +5379,19 @@ function setupPlayback() {
       if (STATE.playing) {
         const dPct = (dt * STATE.speed) / FLIGHT.durationSec;
         STATE.pct += dPct;
-        if (STATE.pct >= 1) { STATE.pct = 1; STATE.playing = false; paint(); }
+        if (STATE.pct >= 1) {
+          STATE.pct = 1;
+          STATE.playing = false;
+          paint();
+          // Transition: end-of-flight pause — broadcast the new playing state.
+          if (typeof broadcastState === 'function') broadcastState();
+        } else {
+          // Steady-state tick: only push the playhead. Don't echo `playing` or
+          // anything else, otherwise a pause click on the other window can be
+          // overwritten by a queued tick that still carries playing=true.
+          if (typeof broadcast === 'function') broadcast('tick', { pct: STATE.pct });
+        }
         update();
-        if (typeof broadcastState === 'function') broadcastState();
       }
       requestAnimationFrame(loop);
     }
@@ -6954,6 +6964,18 @@ if (BC) {
         break;
       case 'goodbye':
         setSiblingConnected(false);
+        break;
+      case 'tick':
+        // Steady-state playhead update only — never carries playing/speed/view,
+        // so it can't undo a local pause click that's racing with a primary rAF.
+        // If we've already paused locally, ignore the tick so the playhead
+        // doesn't jump forward after the user clicked pause.
+        if (STATE.playing) {
+          _suppressBroadcast = true;
+          STATE.pct = m.pct;
+          update();
+          _suppressBroadcast = false;
+        }
         break;
       case 'state':
         _suppressBroadcast = true;
