@@ -1306,6 +1306,85 @@
     .module__drag:hover { color: var(--color-text); background: var(--color-surface-hi); }
     .module__drag:active { cursor: grabbing; }
     .module__hide:hover { color: var(--color-level-3); background: rgba(255,96,25,0.10); }
+    /* Layer bar — horizontal strip between .module__head and .module__body
+       for 3D View / Map. Never overlays the imagery. Grouped by domain with
+       inline eyebrow labels; horizontal scroll when groups overflow.
+       Technical labels stay verbatim — analysts know the terms. */
+    .module__layers {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 6px 10px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      flex-shrink: 0;
+    }
+    .module__layers::-webkit-scrollbar { display: none; }
+    .layer-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .layer-group + .layer-group {
+      margin-left: 8px;
+      padding-left: 8px;
+      border-left: 1px solid var(--color-border);
+    }
+    .layer-group__title {
+      font-family: var(--font-label);
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-right: 2px;
+      padding: 3px 5px;
+      border-radius: 3px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.12s, background 0.12s;
+    }
+    .layer-group__title:hover {
+      color: var(--color-accent);
+      background: rgba(40,200,185,0.08);
+    }
+    .layer-group__title:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-accent); }
+    .layer-group:hover .layer-row { border-color: rgba(40,200,185,0.25); }
+    .layer-row {
+      flex: 0 0 auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      height: 22px;
+      padding: 0 9px;
+      border-radius: 11px;
+      font-family: var(--font-body);
+      font-size: 11px; font-weight: 350;
+      color: var(--color-text-dim);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.12s, background 0.12s, border-color 0.12s;
+    }
+    .layer-row__dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid var(--color-text-muted);
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .layer-row:hover { color: var(--color-text); border-color: var(--color-accent-dim); }
+    .layer-row:hover .layer-row__dot { border-color: var(--color-text-dim); }
+    .layer-row.is-on {
+      color: var(--color-text);
+      background: var(--color-surface-hi);
+      border-color: var(--color-accent-dim);
+    }
+    .layer-row.is-on .layer-row__dot { background: var(--color-accent); border-color: var(--color-accent); }
+    .layer-row:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-accent); }
     .module__body {
       flex: 1;
       display: flex;
@@ -3638,13 +3717,40 @@
       <section class="module" data-module="view3d">
         <header class="module__head">
           <span class="module__title">3D View</span>
-          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
               <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
             </button>
             <button class="module__hide" data-module-hide title="Hide">
               <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
             </button></div>
         </header>
+        <div class="module__layers" data-layers="view3d" role="group" aria-label="3D view layers">
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Flight</button>
+            <button class="layer-row is-on" data-layer="events" aria-pressed="true"><span class="layer-row__dot"></span>Events</button>
+            <button class="layer-row is-on" data-layer="phases" aria-pressed="true"><span class="layer-row__dot"></span>Phases</button>
+            <button class="layer-row" data-layer="ktis" aria-pressed="false"><span class="layer-row__dot"></span>KTIs</button>
+            <button class="layer-row" data-layer="kpvs" aria-pressed="false"><span class="layer-row__dot"></span>KPVs</button>
+            <button class="layer-row" data-layer="approach-segments" aria-pressed="false"><span class="layer-row__dot"></span>Approach segments</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Terrain</button>
+            <button class="layer-row" data-layer="terrain" aria-pressed="false"><span class="layer-row__dot"></span>Terrain displacement</button>
+            <button class="layer-row" data-layer="obstacles" aria-pressed="false"><span class="layer-row__dot"></span>Ground obstacles</button>
+            <button class="layer-row" data-layer="platforms" aria-pressed="false"><span class="layer-row__dot"></span>Offshore platforms</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Weather</button>
+            <button class="layer-row" data-layer="weather" aria-pressed="false"><span class="layer-row__dot"></span>Clouds, rain, snow</button>
+            <button class="layer-row" data-layer="metar" aria-pressed="false"><span class="layer-row__dot"></span>METAR</button>
+            <button class="layer-row" data-layer="wind" aria-pressed="false"><span class="layer-row__dot"></span>Relative wind vector</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Routes</button>
+            <button class="layer-row" data-layer="approach" aria-pressed="false"><span class="layer-row__dot"></span>Approach plates</button>
+          </div>
+        </div>
         <div class="module__body">
           <div class="visualizer-pane" id="visualizer-pane">
             <!-- Photographic placeholder — top-down helicopter still. Replaced by real WebGL later. -->
@@ -3667,13 +3773,39 @@
       <section class="module" data-module="map">
         <header class="module__head">
           <span class="module__title">Map</span>
-          <div class="module__head-actions"><button class="module__drag" data-module-drag title="Drag to reorder">
+          <div class="module__head-actions">
+            <button class="module__drag" data-module-drag title="Drag to reorder">
               <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
             </button>
             <button class="module__hide" data-module-hide title="Hide">
               <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 2L8 8M8 2L2 8"/></svg>
             </button></div>
         </header>
+        <div class="module__layers" data-layers="map" role="group" aria-label="Map layers">
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Flight</button>
+            <button class="layer-row is-on" data-layer="events" aria-pressed="true"><span class="layer-row__dot"></span>Events</button>
+            <button class="layer-row is-on" data-layer="phases" aria-pressed="true"><span class="layer-row__dot"></span>Phases</button>
+            <button class="layer-row" data-layer="ktis" aria-pressed="false"><span class="layer-row__dot"></span>KTIs</button>
+            <button class="layer-row" data-layer="kpvs" aria-pressed="false"><span class="layer-row__dot"></span>KPVs</button>
+            <button class="layer-row" data-layer="approach-segments" aria-pressed="false"><span class="layer-row__dot"></span>Approach segments</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Weather</button>
+            <button class="layer-row" data-layer="wx-radar" aria-pressed="false"><span class="layer-row__dot"></span>Wx radar</button>
+            <button class="layer-row" data-layer="sigmets" aria-pressed="false"><span class="layer-row__dot"></span>SIGMETs</button>
+            <button class="layer-row" data-layer="metar" aria-pressed="false"><span class="layer-row__dot"></span>METAR</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Traffic</button>
+            <button class="layer-row" data-layer="adsb" aria-pressed="false"><span class="layer-row__dot"></span>ADS-B traffic</button>
+          </div>
+          <div class="layer-group">
+            <button class="layer-group__title" type="button" data-group-toggle title="Click to toggle all in this group">Routes</button>
+            <button class="layer-row" data-layer="arinc424" aria-pressed="false"><span class="layer-row__dot"></span>ARINC424</button>
+            <button class="layer-row" data-layer="approach" aria-pressed="false"><span class="layer-row__dot"></span>Approach plates</button>
+          </div>
+        </div>
         <div class="module__body">
           <div class="map-pane">
             <!-- Photographic map placeholder. Replaced by a real tile provider later.
@@ -6004,7 +6136,8 @@ function renderModuleTogglesInto(root) {
       const inAddPicker = !!btn.closest('#sec-add-popover');
       if (e.target.closest('[data-send-module]')) {
         if (typeof sendModuleToOtherWindow === 'function') sendModuleToOtherWindow(key);
-        if (inAddPicker) closeSecAddPopover();
+        // Popover stays open — outside-click closes it. Lets the user
+        // send / add / remove several modules in one batch.
         return;
       }
       // Recompute live state at click time — the data-state attribute can
@@ -6037,7 +6170,8 @@ function renderModuleTogglesInto(root) {
         toggleModuleVisibility(key);
         acted = true;
       }
-      if (inAddPicker && acted) closeSecAddPopover();
+      // No auto-close — popover stays open for batch add/request-back; the
+      // outside-click handler installed by openAddPop() dismisses it.
     });
   });
 }
@@ -6617,6 +6751,37 @@ function positionSidebarPopover(pop, btn) {
 // Removed in mosaic refactor — visibility is now controlled by the
 // module-toggles inside the Layout popover, and arrangement by drag/resize.
 function setupLayoutOptions() {}
+
+// Layer toggles for 3D View / Map. Visual-only for now — no real data layers
+// wired yet. Module DOM is moved (not rebuilt) by applyMosaic(), so the
+// is-on class persists across layout changes without any extra bookkeeping.
+function setupLayerToggles() {
+  document.addEventListener('click', function(e) {
+    // Group title — toggle every .layer-row in this group. If any are off,
+    // turn all on; if all are on, turn all off.
+    var groupTitle = e.target.closest('.layer-group__title');
+    if (groupTitle) {
+      var group = groupTitle.closest('.layer-group');
+      if (!group) return;
+      var rows = group.querySelectorAll('.layer-row');
+      var allOn = Array.prototype.every.call(rows, function(r) { return r.classList.contains('is-on'); });
+      var next = !allOn;
+      rows.forEach(function(r) {
+        r.classList.toggle('is-on', next);
+        r.setAttribute('aria-pressed', next ? 'true' : 'false');
+      });
+      return;
+    }
+    // Individual layer row.
+    var row = e.target.closest('.layer-row');
+    if (row) {
+      var rOn = !row.classList.contains('is-on');
+      row.classList.toggle('is-on', rOn);
+      row.setAttribute('aria-pressed', rOn ? 'true' : 'false');
+    }
+  });
+}
+
 function setupPanelResize() {}
 
 function toggleSidebar() { $("#sidebar").classList.toggle("is-collapsed"); }
@@ -7083,6 +7248,7 @@ setupModuleHideButtons();
 setupMosaicResize();
 setupMosaicReorder();
 setupModuleTabs();
+setupLayerToggles();
 renderTemplatesList();
 
 /* ─── Multi-window state sync ─────────────────────────────────────────────

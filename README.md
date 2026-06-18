@@ -286,6 +286,36 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 - **Contrast lift** (`--color-text-muted` `#3A6478 → #688E9F`) and `:focus-visible` accent rings on the module head buttons, per the `/impeccable:audit` pass.
 - **Custom in-app modal** for naming layout templates (replaces `window.prompt`).
 
+### 3D View & Map — feature wishlist (Brazos)
+
+Feedback drop from Brazos, not yet prioritised. Most need real data providers wired before they can be visualised — captured here so the design intent isn't lost.
+
+**3D viz layers** (grouped: Flight / Terrain / Weather / Routes)
+
+- Flight: Events · Phases · KTIs · KPVs · Approach segments
+- Terrain: Terrain displacement · Ground obstacles · Offshore platforms
+- Weather: Clouds, rain, snow (see [TCU-Airport-API](https://github.com/BrazosSS/TCU-Airport-API)) · METAR · Relative wind vector
+- Routes: Approach plates
+
+**2D Map layers** (grouped: Flight / Weather / Traffic / Routes)
+
+- Flight: Events · Phases · KTIs · KPVs · Approach segments
+- Weather: Wx radar (on-demand) · SIGMETs ([NWS reference](https://www.weather.gov/zse/SIGMETs)) · METAR
+- Traffic: ADS-B traffic
+- Routes: ARINC424 · Approach plates
+
+**A note on "Flight timeline display"**: Brazos's original ask was "Flight timeline display (with selected time points, phases, events, etc.)" inside the 3D viz. We tried this as a flat HTML strip at the bottom of the placeholder and removed it — the topbar timeline already provides the *time* axis, so a second flat copy was redundant. The intent is captured spatially instead, by the `Flight` group toggles (Events / Phases / KTIs / KPVs / Approach segments) which will render time-stamped markers along the helicopter's path in both surfaces when the real Map and 3D viz land.
+
+**UI principles (mariagrilo, 2026-06-18)**:
+
+- No controls overlaid on the map or 3D viewport. Toggles live on a dedicated surface, never floating over the imagery.
+- For 3D View and Map, that surface is a **horizontal strip on top** of the module body (`.module__layers`), between `.module__head` and `.module__body`. A right-side vertical rail was tried and rejected — felt heavy at the module width these usually run at.
+- Layers are **grouped by domain** (Terrain / Weather / Routes for 3D; Weather / Traffic / Routes for Map) with inline eyebrow labels (`.layer-group__title`) and a thin divider between groups. Never compounded into preset "views" — analysts toggle individual layers; preset macros would hide controls they need.
+- The strip is horizontally scrollable; scrollbar hidden. Groups stay intact (no internal wrapping).
+- Technical names are kept verbatim — ARINC424, METAR, SIGMETs, Wx, ADS-B — see [Copy stays technical](../.claude/projects/-Users-mariagrilo-Documents-BrazosSimulator/memory/feedback_copy_for_professionals.md). Refinement happens with the analysts, not in the prototype.
+- "Timeline" inside the 3D viz is a **viz mode**, not a data layer — lives as `.module__head-toggle` in the 3D module's header actions, not in the layer rail.
+- Layers are visual-only right now (no real data providers wired); `is-on` class persists across `applyMosaic()` because module DOM is moved, not rebuilt.
+
 ### Pending — broader
 
 - Real 3D visualizer (currently a photo placeholder, pending WebGL integration).
