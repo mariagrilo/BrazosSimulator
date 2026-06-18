@@ -121,8 +121,8 @@ Seven static `<section class="module" data-module="…">` elements live in the H
 | `data-module` | Title | Body content |
 |---|---|---|
 | `graphs` | Graphs | Dynamic chart cards + "Add a graph" button (bolder teal-tinted CTA, lifts on hover) |
-| `tabular` | Tabular | Tabular + Status as sub-tabs. Tabular: downsampled parameter table; click-to-seek; auto-scrolls to current row; event rows are colour-tinted across **all** columns by their severity level |
-| `status` | Status (tab inside Tabular slot) | Compact stat-block hero (L3/L2/L1 counts) + single scrollable list of events in time order |
+| `tabular` | Tabular | Downsampled parameter table; click-to-seek; auto-scrolls to current row; event rows are colour-tinted across **all** columns by their severity level |
+| `status` | Status | Own module (split out from the Tabular tab strip). Compact stat-block hero (L3/L2/L1 counts) + single scrollable list of events in time order |
 | `view3d` | 3D View | Helicopter photo placeholder (`assets/helicopter-placeholder.png`) + live readout (ALT, IAS, VSI, HDG, P, R) |
 | `map` | Map | Real map photo (`assets/map.png`) with zoom + pan, flight-track polyline overlay, directional aircraft arrow rotated to path tangent |
 | `pfd` | Primary Flight Display | Speed/alt tapes, attitude, VSI, heading strip — fits to 400px in vertical splits |
@@ -146,7 +146,13 @@ Three commitment levels, increasing in weight:
 - Event markers are map-pin glyphs (per Figma 5221:13079) bottom-anchored inside the track, tip on the exact event time, inner severity-coloured dot (r=3).
 - Current-time chip sits below the track, with a teal caret pointing up at the playhead.
 - Click / drag the track to seek. Buttons: prev event, play/pause, next event. Speed selector from 0.25× to 8×.
-- **Timeline zoom is not yet built** — it's the next thing to ship (see [Roadmap](#status--roadmap)).
+- **Timeline zoom** (shipped):
+  - Drag-select on the track → zoom into the selected interval; a teal selection rectangle previews the range. Dragging inside an already-zoomed view zooms further.
+  - Click on the track → seek the playhead to that position.
+  - Grab the playhead bar (or within ~8px of it) → scrub.
+  - Click a phase / KTI / KPV / Event in the Finder → animated zoom-to-range with cross-fade on charts. Phases: a second click on the same phase zooms back out. Events/KTIs/KPVs that fall outside the current zoom trigger an animated zoom-out before seeking.
+  - Reset-zoom button (`⤾`) sits inside the track, right-anchored; appears only while zoomed. Solid accent fill so it reads as a primary action.
+  - Animation: `animateViewTo()` tweens `STATE.viewStart` / `viewEnd` over ~360ms with ease-in-out cubic. Each frame re-runs `applyZoomTimeline()` (continuous reflow of altitude profile / event pins / playhead / time readouts); charts cross-fade via `.graph-card__plot.is-zooming { opacity: 0.18 }` and `applyZoomCharts()` snaps to the final viewBox at the end. Polylines use `vector-effect="non-scaling-stroke"` so they don't visually thicken under the X-axis squeeze.
 
 ### Flight info strip
 
@@ -160,9 +166,67 @@ Click the flight name at the left end of the timeline bar — a slim strip slide
 
 Sidebar collapses via the toggle. When collapsed, the Layout / Templates popovers anchor outside the sidebar (`position: fixed`) so they don't get clipped.
 
+### Secondary popout window
+
+The Layout popover's "Pop out second window" button opens the same `skeleton.html` as a second window via `window.open`. The popout strips chrome and reuses the existing modules, syncing state across windows over `BroadcastChannel('brazos-sim')`.
+
+**URL flag detection** — supports both forms:
+
+- `?window=secondary` — clean form for direct serving (local dev, future hosted deploy).
+- `#window=secondary` — hash form, required when running via `htmlpreview.github.io` because that proxy uses the query string for the source GitHub URL. The pop-out button always opens with the hash form so it works in both environments.
+
+**Body classes**:
+
+- `body.is-secondary` — applied at boot when the flag is present; CSS hides `.topbar`, `.flight-info-strip`, and `.sidebar`. The timeline-bar stays visible by default.
+- `body.is-secondary-no-timeline` — toggled by the `×` on the secondary's timeline and persisted in `sessionStorage('brazos:sec-no-timeline')`. When set, hides the timeline-bar and shows the floating revealer strip at top center: `[+ Add module] [Timeline ▼]`.
+- `body.has-sibling-window` — applied when the BroadcastChannel hello/hello-ack handshake completes. CSS-gates the per-module `→ send to other window` button in each header.
+
+**BroadcastChannel protocol** — `var BC = new BroadcastChannel('brazos-sim')` (declared with `var` so it's hoisted; `seekTo()` and `setSelectedFinder()` can call `broadcastState()` at any point during boot without TDZ trouble).
+
+| Message | Direction | Payload | Purpose |
+|---|---|---|---|
+| `hello` | either → either | `{fromRole}` | sent on boot; awaiting an ack |
+| `hello-ack` | either → either | `{fromRole}` | confirms sibling presence; primary follows with `state` + `layout-modules` |
+| `goodbye` | either → either | `{fromRole}` | sent in `beforeunload` |
+| `reload` | primary → secondary | `{fromRole}` | sent in primary's `beforeunload` so a single Cmd-R on the primary refreshes both windows |
+| `state` | either → either | `{pct, viewStart, viewEnd, playing, speed, selectedFinderKey}` | transition broadcast — sent only on play/pause toggle, speed change, seek, zoom apply, finder selection. Receiver applies under a `_suppressBroadcast = true` guard to prevent echo loops |
+| `tick` | primary → secondary | `{pct}` | steady-state playback updates only, sent from the rAF loop. Receiver ignores when `STATE.playing` is locally false — this is what keeps a pause click from being undone by a queued tick. **Don't add `playing` to this payload.** |
+| `layout-modules` | either → either | `{modules: string[]}` | broadcast at the end of every `applyMosaic()`. Receiver writes to `OTHER_MODULES` and re-renders the picker rows |
+| `transfer` | either → either | `{module, toRole}` | sent by `sendModuleToOtherWindow()` after pruning its local LAYOUT; receiver appends via `receiveTransferredModule()` |
+| `request-back` | either → either | `{module}` | sent by the secondary's add picker (and the primary Layout popover's "in window 2" row). Receiver calls `sendModuleToOtherWindow()` if it actually has the module |
+
+Primary owns the rAF loop. Secondary's `setupPlayback()` skips the advance step (`WINDOW_ROLE === 'primary'` guard), so the two windows never double-tick `STATE.pct`.
+
+**Per-module → button** — injected into every `.module__head-actions` at boot, hidden via CSS until `body.has-sibling-window` is set. Click → `sendModuleToOtherWindow()` removes the module from this window's LAYOUT (collapsing the tree via `pruneModuleFromTree()`, my multi-window-only helper that returns a *new* tree) and tells the other side to append it.
+
+**Layout popover** — 3-state per row. `renderModuleToggles()` writes the same HTML into every container that has it (`#module-toggles` and the secondary's `#sec-add-toggles`):
+
+| Visual | Meaning | Click action |
+|---|---|---|
+| Solid accent check + `→` button | `here` (in our LAYOUT) | `→` → send to other; row → toggle to hidden (primary popover only) |
+| Dashed accent border + "in window 2" tag | `other` (in OTHER_MODULES) | row → broadcast `request-back` |
+| Empty check | `hidden` (in neither) | row → add (see semantics below) |
+
+State is **recomputed at click time** from `getVisibleModules()` and `OTHER_MODULES` — the row's `data-state` attribute can lag if `OTHER_MODULES` updates between renders. Without this recompute, a fast click landed on the stale "hidden" branch and ran the wrong path.
+
+**Add-module path on the secondary is its own thing** (not `toggleModuleVisibility`):
+
+- Primary's Layout popover for `hidden` → `toggleModuleVisibility` → `addModuleToTree`. That uses `LAST_POSITION` to restore a module to its analyst-layout home — correct in the primary, makes no sense in the stripped secondary.
+- Secondary's `+ Add module` picker → `appendModuleToLayout(name)` (a thin extraction from `receiveTransferredModule`). Flat append, no LAST_POSITION lookup. It dedups via `getVisibleModules().includes(name)` so a `request-back` arriving back as a `transfer` after the local append is silently skipped.
+
+**Trigger surface on the secondary** — three buttons share one `#sec-add-popover`:
+
+1. `.timeline-bar__sec-add` (in-bar `+ Add module`, accent fill) — visible while the timeline is shown.
+2. `.secondary-floating-pill--primary` (top-center pill, accent fill) — visible while the timeline is hidden, alongside the `Timeline ▼` revealer.
+3. `.mosaic-empty-cta` (dashed-border tile centered in the mosaic) — visible only while `#mosaic.mosaic--empty`, gated by `body.is-secondary:has(#mosaic.mosaic--empty)`.
+
+`openAddPop(trigger)` anchors the popover under the trigger using the bar's bottom (when the trigger lives inside the timeline-bar) so the bar doesn't clip the popover. Horizontal: right-aligns for the corner triggers (in-bar / pill), centers under the CTA. If the popover would clip the viewport bottom, it flips above the trigger.
+
+**Templates** — the legacy `prompt("Template name:")` is replaced by an in-app modal (`#template-modal`) styled to match the rest of the chrome. `openTemplateNamePrompt()` returns a Promise that resolves to the trimmed name or `null`.
+
 ### Chart system
 
-- **Dual Y-axes, both on the left.** A chart accepts up to 2 distinct scales: `ft`, `kt`, `%`, `deg`, `fpm`, `°C`, `hdg`. The `+` button on a chart header opens a picker that disables params whose scale would push the chart over 2 scales.
+- **Y-axes, all on the left.** A chart renders one axis column per distinct scale (`ft`, `kt`, `%`, `deg`, `fpm`, `°C`, `hdg`), no upper bound. The 2-scale cap was removed — every parameter can be added regardless of scale.
 - **Hover-isolate** — hovering any legend item dims every other line and the axis that doesn't apply to the focused param.
 - **Per-legend `×`** removes a single param from the chart.
 - **Picker is a toggle list** — clicking an already-added param removes it; the menu stays open across toggles for batch editing.
@@ -213,9 +277,14 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 - Sidebar Layout & Templates popovers
 - Working dual-remote git push, assets tracked in `assets/`
 
-### Pending — Thierry's latest feedback
+### Done — recent
 
-- **Timeline zoom.** Drag-select a range on the timeline to zoom; click a phase or KTI to set a span; persistent context strip (mini-map of full flight) above the zoomed range; zoom affects all charts. This is the next thing to build.
+- **Timeline zoom**: drag-to-zoom, click-to-seek, scrub the playhead, animated phase-scope from the Finder with chart cross-fade, reset-zoom chip.
+- **Status split** out into its own module (no longer a Tabular sub-tab); default layout updated to three columns: Graphs + Engines / Tabular + 3D + Map / Status + PFD.
+- **Secondary popout window** with BroadcastChannel state sync, per-module `→`, `+ Add module` picker with three trigger surfaces (in-bar, floating pill, empty-state CTA tile), and a Cmd-R reload chain.
+- **Finder selection state**: dots desaturated unless selected; selected non-event items turn accent blue. Events keep their severity colors as diagnostic signal.
+- **Contrast lift** (`--color-text-muted` `#3A6478 → #688E9F`) and `:focus-visible` accent rings on the module head buttons, per the `/impeccable:audit` pass.
+- **Custom in-app modal** for naming layout templates (replaces `window.prompt`).
 
 ### Pending — broader
 
@@ -223,7 +292,6 @@ Comments / validity / status changes live on `FLIGHT.events[*]` in memory and su
 - Real map provider (Mapbox / Google / OSM not chosen yet — currently a photo with track overlay).
 - Real flight data — everything is mocked.
 - Backend wiring — comments / status / validity changes are session-local.
-- Multi-window sync model — TBD.
 - Persistent saved layouts (`SAVED_LAYOUTS` is in-memory only).
 
 ### Open design questions for the analyst meeting
@@ -252,6 +320,38 @@ These have been argued out — don't relitigate without evidence.
 | Templates popover, not a full template manager modal | Original tool had a heavy template manager. Keep it light. |
 | Add-param menu stays open across toggles | Analysts toggle multiple params at once; closing after each click was friction. |
 | Status hero kept, flight ID line removed | Status is for judgment ("severe events present"). Identification belongs in Flight Info. |
+| Hash-based secondary URL (`#window=secondary`) | The `?` query string is taken by htmlpreview.github.io's source URL. A query param would replace the source and the popup would land on github.com. Hash fragments are client-side only. |
+| Primary owns the playback rAF | If both windows advanced `STATE.pct` independently they'd drift. The secondary's `setupPlayback()` skips the advance step under `WINDOW_ROLE === 'primary'`. |
+| `tick` ≠ `state` | The rAF was broadcasting full `STATE` every frame; a pause click on either side would lose to a queued tick that still claimed `playing=true`. Tick carries only `{pct}` and the receiver ignores it when local `playing` is false. **Don't add `playing` back into the tick payload.** |
+| Secondary picker never uses `LAST_POSITION` | `LAST_POSITION` is the analyst-layout home for each module in the primary. Applied to the secondary's stripped tree it wraps incoming modules in nonsense split-v structures and leaves phantom empty panes. The picker uses `appendModuleToLayout()` (flat append) + `request-back` + a dedup guard on the receive. |
+| 2-scale cap on charts removed | Analysts asked for "infinite" scales. Charts now render one Y-axis column per distinct scale; the plot area shrinks. The add-param menu no longer disables scale-mismatched params. |
+
+---
+
+## In-browser verification
+
+Two ways the prototype gets exercised during a session:
+
+**Local dev server**
+
+```bash
+python3 -m http.server 8765
+# primary
+open http://localhost:8765/skeleton.html
+# secondary (for multi-window work)
+open "http://localhost:8765/skeleton.html?window=secondary"
+```
+
+**Chrome MCP** — when paired (via `claude-in-chrome`), drive the browser from this session:
+
+- `mcp__claude_in_chrome__list_connected_browsers` / `select_browser` — pair to the user's Chrome.
+- `tabs_context_mcp { createIfEmpty: true }` to get a tab group; `tabs_create_mcp` for additional tabs.
+- `navigate { tabId, url }`, `javascript_tool { tabId, text }`, and `computer { action: screenshot, tabId }` for verification.
+- Note: the MCP-controlled tabs are scoped to a tab group separate from the user's existing tabs. To inspect the user's already-open `localhost:8765` window, ask them to paste console output instead.
+
+The Chrome MCP is how every multi-window change gets sanity-checked: open primary + `?window=secondary` in two MCP tabs, run scripted clicks via `javascript_tool`, then read back `STATE` / `LAYOUT` / `OTHER_MODULES` to verify.
+
+**htmlpreview cache** — `raw.githubusercontent.com` sets `Cache-Control: max-age=300`. After a push, the new file is at GitHub instantly, but a browser that already has the old version cached will keep serving it for up to 5 min. Hard-refresh (Cmd-Shift-R) bypasses, or wait. **This trips us up almost every push** — when the user says "it's not working", first check whether they're on a fresh fetch.
 
 ---
 
@@ -283,5 +383,12 @@ Terse, on purpose:
 - **State mutations**: anything touching `LAYOUT` (the tree), `FLIGHT.events[*]`, or `GRAPHS` needs to be followed by `applyMosaic()` or the corresponding render function. The render functions write directly to DOM; there's no virtual DOM.
 - **Dead code worth knowing about**: `_legacy_findResizeHandles`, `_legacy_positionMosaicResizeHandles`, `_legacy_setupRightTabs`, the empty stubs `setupRightTabs`, `setupInstrumentsTabs`, `setupLayoutOptions`, `setupPanelResize`, and the now-noop `renderMap` (its original body lives next to it as `__removed_renderMap_unused`). Safe to delete in a future pass — left in for now to keep the boot section unchanged.
 - **Assets live in `assets/` (lowercase).** macOS is case-insensitive but GitHub isn't — keep the directory lowercase or htmlpreview will 404. Fonts in `assets/fonts/` (FFF Acid Grotesk OTFs + Space Grotesk variable TTF). Photos: `helicopter-placeholder.png`, `map.png`.
+- **`pruneModuleFromTree(node, name)` vs `removeModuleFromTree(name)`** — they collided once. The multi-window helper that returns a *new* tree (pure, used by `sendModuleToOtherWindow` and `request-back`) is `pruneModuleFromTree`. The legacy single-arg `removeModuleFromTree` mutates the live LAYOUT in place and is what the Layout popover's `toggleModuleVisibility` calls. Keep the names distinct.
+- **Two appends, two semantics** — `addModuleToTree(name)` respects `LAST_POSITION` (analyst-layout home) — use it ONLY from the primary's Layout popover. `appendModuleToLayout(name)` does a flat append with no LAST_POSITION lookup — use it for the secondary's `+ Add module` picker and from `receiveTransferredModule()`. Mixing these up brings back the phantom-pane bug.
+- **State sync points** are explicit. Every place that mutates `STATE.pct`, `STATE.viewStart/End`, `STATE.playing`, `STATE.speed`, or `STATE.selectedFinderKey` needs `if (typeof broadcastState === 'function') broadcastState();` at the end (the `typeof` guard is defensive — the function exists once boot is done, but use it anyway). The rAF loop is the exception: it broadcasts `tick { pct }` instead.
+- **Don't broadcast from animation frames.** `animateViewTo()` broadcasts once at the end of the tween, not per frame. 60 broadcasts/sec is technically cheap but the receiver re-renders heavily.
+- **Empty mosaic in the secondary** is gated by `body.is-secondary:has(#mosaic.mosaic--empty) .mosaic-empty-cta`. `:has()` is widely supported (Chrome 105+, Safari 15.4+, Firefox 121+) but if it ever needs to degrade, the alternative is toggling a body class from `applyMosaic()`.
+- **The Chrome MCP's tab group is isolated from the user's existing tabs.** If they have `localhost:8765` open in their normal browser, I can't read it directly — I see only tabs in my MCP group. Best paths: ask for `JSON.stringify(LAYOUT)` from their console, or open a fresh tab in the MCP group and have them rearrange that one.
+- **htmlpreview popout** has bitten us twice. The hash flag (`#window=secondary`) fixes the popout URL. After a push, the user's browser may still serve a cached copy for up to 5 min (`Cache-Control: max-age=300` on raw GitHub) — if the user says it's "not working", verify the cached file first via `fetch(url, { cache: 'no-store' })` in DevTools.
 
 When in doubt about a design direction: the user is **mariagrilo** (Subvisual, designer). She knows the analyst context, has talked to Thierry (Brazos), and will push back on bad design choices. Listen to her critiques — she's run `/impeccable:critique` on previous AI proposals and the feedback was correct.
