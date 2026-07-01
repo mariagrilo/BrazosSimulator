@@ -7227,10 +7227,11 @@ function openEventDrawer(eventId) {
   const ev = FLIGHT.events.find(e => e.id === eventId);
   if (!ev) return;
   STATE.activeEventId = ev.id;
-  // Note: opening the drawer no longer auto-seeks the timeline. Per Brazos
-  // feedback, jumping to the event's time is a separate discrete action
-  // (the → button in the Status row, the timeline pin). Analysts can read
-  // an event's details without disturbing the playhead.
+  // Row click opens the drawer AND navigates the timeline to the event's
+  // time — maria's call after seeing the split-behaviour version. The → jump
+  // button on each row is still useful for "step through events without
+  // opening the drawer each time".
+  seekTo(ev.pct);
   renderEventDrawer();
   document.body.classList.add("has-event-drawer");
   $("#event-drawer").setAttribute("aria-hidden", "false");
@@ -7286,29 +7287,11 @@ function renderEventDrawer() {
       <button class="event-drawer__close" title="Close" data-close>×</button>
     </header>
 
-    <!-- Flight context strip — kept in full per spec; analyst-share-screenshot rationale. -->
-    <section class="event-drawer__meta">
-      <div><span class="kv-label">Flight</span><span class="kv-value">${FLIGHT.id}</span></div>
-      <div>
-        <span class="kv-label">Reference</span>
-        <span class="kv-value">${ev.reference} <button class="kv-icon-btn" title="Copy reference" data-copy="${ev.reference}">⊖</button></span>
-      </div>
-      <div>
-        <span class="kv-label">Aircraft</span>
-        <span class="kv-value">${FLIGHT.aircraft} <button class="kv-icon-btn" title="Aircraft details">ⓘ</button></span>
-      </div>
-      <div><span class="kv-label">Flight type</span><span class="kv-value">${FLIGHT.flightType}</span></div>
-      <div class="event-drawer__meta-wide">
-        <span class="kv-label">Takeoff</span>
-        <span class="kv-value">${FLIGHT.takeoffDate} ${FLIGHT.startStr}Z / day</span>
-        <span class="kv-sub">${FLIGHT.origin}</span>
-      </div>
-      <div class="event-drawer__meta-wide">
-        <span class="kv-label">Landing</span>
-        <span class="kv-value">${FLIGHT.landingDate} ${FLIGHT.endStr}Z / day</span>
-        <span class="kv-sub">${FLIGHT.destination}</span>
-      </div>
-    </section>
+    <!-- Flight identity strip was here (Flight / Aircraft / Type / Takeoff /
+         Landing) — removed because the Flight and Event Details module now
+         owns that info at the top of its list. Reference is the only
+         event-specific field that lived here; it now lives in the card
+         values grid below alongside Value / Date-time / Event ID. -->
 
     <section class="event-drawer__card">
       <!-- Card head: 3×2 grid of values, full-width. Severity badge lives in the
@@ -7345,8 +7328,8 @@ function renderEventDrawer() {
             <span class="kv-value">${ev.id} <button class="kv-icon-btn" title="Copy event ID" data-copy="${ev.id}">⊖</button></span>
           </div>
           <div>
-            <span class="kv-label">Code</span>
-            <span class="kv-value">${ev.code}</span>
+            <span class="kv-label">Reference</span>
+            <span class="kv-value">${ev.reference} <button class="kv-icon-btn" title="Copy reference" data-copy="${ev.reference}">⊖</button></span>
           </div>
           <div>
             <span class="kv-label">Status by</span>
