@@ -2453,8 +2453,10 @@
        in the narrow Tabular slot. */
     .status-event-list { display: flex; flex-direction: column; }
     .status-event {
-      display: flex; flex-direction: column;
-      gap: 6px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
       padding: 8px 12px;
       border-bottom: 1px solid var(--color-border);
       cursor: pointer;
@@ -2462,30 +2464,9 @@
     }
     .status-event:hover { background: var(--color-surface-hi); }
     .status-event:last-child { border-bottom: none; }
-    .status-event__row {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto auto;
-      gap: 10px;
-      align-items: center;
-    }
-    /* Pills row (status + validity) sits under the main row and lines up past
-       the leading sev pill. Brazos asked for inline validation so analysts
-       don't need to open every event just to set state. */
-    .status-event__pills {
-      display: flex;
-      gap: 6px;
-      padding-left: 36px;
-      flex-wrap: wrap;
-    }
-    .status-event__pill {
-      cursor: pointer;
-      font-size: 10px;
-      padding: 3px 8px;
-    }
-    /* Jump-to-time button — sits at the right of the main row. Row click still
-       opens the (push-aside) drawer; this button just seeks. Brazos: "Create a
-       separate button for jumping to the event time so clicking on the event
-       [opens details, doesn't seek]." */
+    /* Jump-to-time button — the only inline action on the row. Row click still
+       opens the (push-aside) drawer, which is where status and validity get
+       set; this button just seeks the timeline. */
     .status-event__jump {
       width: 22px; height: 22px;
       display: inline-flex; align-items: center; justify-content: center;
@@ -5054,73 +5035,39 @@ function renderStatus() {
       <div class="status-event-list">
         ${FLIGHT.events.map(ev => `
           <div class="status-event" data-status-event="${ev.id}" data-pct="${ev.pct}">
-            <div class="status-event__row">
-              <span class="sev-pill level-${ev.level}">L${ev.level}</span>
-              <div class="status-event__head">
-                <div class="status-event__name">${ev.name}</div>
-                <div class="status-event__meta">
-                  <span class="status-event__meta-time">${pctToTime(ev.pct)}</span> · ${ev.phase}
-                </div>
-              </div>
-              <div class="status-event__values">
-                <span class="status-event__value">${ev.value}</span>
-                <span class="status-event__threshold">≥ ${ev.threshold}</span>
-              </div>
-              <button class="status-event__jump" data-status-event-jump="${ev.pct}" title="Jump to ${pctToTime(ev.pct)}" aria-label="Jump to event time">→</button>
-            </div>
-            <div class="status-event__pills">
-              <div class="ev-pill ev-pill--status ev-pill--status-${ev.status} status-event__pill" data-status-event-status="${ev.id}">
-                <span class="ev-pill__dot"></span>${STATUS_LABELS[ev.status]} <span class="ev-pill__caret">▾</span>
-              </div>
-              <div class="ev-pill ev-pill--validity status-event__pill" data-status-event-validity="${ev.id}">
-                ${VALIDITY_LABELS[ev.validity]} <span class="ev-pill__caret">▾</span>
+            <span class="sev-pill level-${ev.level}">L${ev.level}</span>
+            <div class="status-event__head">
+              <div class="status-event__name">${ev.name}</div>
+              <div class="status-event__meta">
+                <span class="status-event__meta-time">${pctToTime(ev.pct)}</span> · ${ev.phase}
               </div>
             </div>
+            <div class="status-event__values">
+              <span class="status-event__value">${ev.value}</span>
+              <span class="status-event__threshold">≥ ${ev.threshold}</span>
+            </div>
+            <button class="status-event__jump" data-status-event-jump="${ev.pct}" title="Jump to ${pctToTime(ev.pct)}" aria-label="Jump to event time">→</button>
           </div>`).join("")}
       </div>
     </section>
 
   `;
 
-  // Row click → open the detail drawer (no seek — the → button handles that
-  // separately per Brazos feedback). Approaches list moved into the Finder's
-  // Phase group; the standalone section here is gone.
+  // Row click → open the (push-aside) detail drawer and seek the timeline.
+  // Status + validity live in the drawer only — inline pills were removed
+  // because the row was getting crowded and the drawer already exposes them
+  // now that it pushes instead of overlays. The → jump button is the only
+  // inline action; it seeks without opening the drawer.
   $$("[data-status-event]", root).forEach(r => {
     r.addEventListener("click", (e) => {
-      if (e.target.closest('[data-status-event-jump], [data-status-event-status], [data-status-event-validity]')) return;
+      if (e.target.closest('[data-status-event-jump]')) return;
       openEventDrawer(parseInt(r.dataset.statusEvent, 10));
     });
   });
-  // Jump-to-time button on each row — seeks the timeline without opening
-  // the drawer, so analysts can move the playhead through events quickly.
   $$("[data-status-event-jump]", root).forEach(b => {
     b.addEventListener("click", (e) => {
       e.stopPropagation();
       seekTo(parseFloat(b.dataset.statusEventJump));
-    });
-  });
-  // Inline status / validity pickers — same picker the drawer uses, so
-  // changes made here are consistent with those made from the drawer.
-  $$("[data-status-event-status]", root).forEach(pill => {
-    pill.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = parseInt(pill.dataset.statusEventStatus, 10);
-      const ev = FLIGHT.events.find(x => x.id === id);
-      if (!ev) return;
-      openInlinePicker(pill,
-        STATUS_LIST.map(s => ({key:s, label:STATUS_LABELS[s], dot:s})),
-        val => { ev.status = val; ev.statusBy = "You"; renderStatus(); });
-    });
-  });
-  $$("[data-status-event-validity]", root).forEach(pill => {
-    pill.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = parseInt(pill.dataset.statusEventValidity, 10);
-      const ev = FLIGHT.events.find(x => x.id === id);
-      if (!ev) return;
-      openInlinePicker(pill,
-        VALIDITY_LIST.map(v => ({key:v, label:VALIDITY_LABELS[v]})),
-        val => { ev.validity = val; ev.validityBy = val === "auto" ? "—" : "You"; renderStatus(); });
     });
   });
 }
