@@ -2310,33 +2310,29 @@
        into the parent .module__tab-pane scroller. The whole tab scrolls as one. */
     .status-page { padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 
-    /* Hero — severity counts only. The verdict sentence was redundant with the
-       counts themselves (three counts at a glance tell the same story without
-       the editorial framing). Stacked stat blocks: big severity-coloured numeral
-       on top, uppercase label beneath. Bolder per pixel, smaller overall. */
-    .status-hero {
-      display: flex;
-      gap: 18px;
-      padding: 10px 14px;
+    /* Flight details block — sits at the top of the module (Brazos feedback:
+       "Move flight details to top of this bar like they are in the event
+       detail sidebar"). Replaces the old L3/L2/L1 severity-count hero, which
+       Brazos asked us to remove — those counts weren't earning their space,
+       and flight identity is what analysts want persistently visible. Layout
+       mirrors the drawer's meta grid so the two surfaces feel like the same
+       object. */
+    .status-flight {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--color-border);
       border-radius: 6px;
-      border-left: 3px solid var(--color-level-1);
       background: var(--color-surface);
     }
-    .status-hero--level-2 { border-left-color: var(--color-level-2); }
-    .status-hero--level-3 { border-left-color: var(--color-level-3); }
-    .status-count {
-      display: flex; flex-direction: column;
-      align-items: flex-start;
-      gap: 1px;
+    .status-flight > div {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
     }
-    .status-count b {
-      font-family: "Acid Grotesk", sans-serif;
-      font-size: 22px;
-      font-weight: 500;
-      line-height: 1;
-      letter-spacing: -0.01em;
-    }
-    .status-count span {
+    .status-flight .kv-label {
       font-family: var(--font-label);
       font-size: 9px;
       font-weight: 500;
@@ -2344,24 +2340,16 @@
       text-transform: uppercase;
       color: var(--color-text-muted);
     }
-    .status-count.level-3 b { color: var(--color-level-3); }
-    .status-count.level-2 b { color: var(--color-level-2); }
-    .status-count.level-1 b { color: var(--color-level-1); }
-    .status-hero__id { text-align: right; }
-    .status-hero__id-flight {
-      font-family: var(--font-label);
-      font-size: 13px;
-      font-weight: 500;
+    .status-flight .kv-value {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 400;
       color: var(--color-text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .status-hero__id-aircraft {
-      font-family: var(--font-label);
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-      margin-top: 2px;
-    }
+    .status-flight__wide { grid-column: span 2; }
 
     /* Route — secondary fact strip */
     .status-route {
@@ -2420,10 +2408,8 @@
        in the narrow Tabular slot. */
     .status-event-list { display: flex; flex-direction: column; }
     .status-event {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
+      display: flex; flex-direction: column;
+      gap: 6px;
       padding: 8px 12px;
       border-bottom: 1px solid var(--color-border);
       cursor: pointer;
@@ -2431,6 +2417,43 @@
     }
     .status-event:hover { background: var(--color-surface-hi); }
     .status-event:last-child { border-bottom: none; }
+    .status-event__row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+    /* Pills row (status + validity) sits under the main row and lines up past
+       the leading sev pill. Brazos asked for inline validation so analysts
+       don't need to open every event just to set state. */
+    .status-event__pills {
+      display: flex;
+      gap: 6px;
+      padding-left: 36px;
+      flex-wrap: wrap;
+    }
+    .status-event__pill {
+      cursor: pointer;
+      font-size: 10px;
+      padding: 3px 8px;
+    }
+    /* Jump-to-time button — sits at the right of the main row. Row click still
+       opens the (push-aside) drawer; this button just seeks. Brazos: "Create a
+       separate button for jumping to the event time so clicking on the event
+       [opens details, doesn't seek]." */
+    .status-event__jump {
+      width: 22px; height: 22px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      color: var(--color-text-dim);
+      background: transparent;
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      font-size: 13px; line-height: 1;
+      transition: color 0.12s, border-color 0.12s, background 0.12s;
+    }
+    .status-event__jump:hover { color: var(--color-accent); border-color: var(--color-accent-dim); background: rgba(40,200,185,0.08); }
+    .status-event__jump:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--color-accent); }
     .status-event__head {
       display: flex; flex-direction: column;
       gap: 2px;
@@ -3759,7 +3782,7 @@
       <!-- ── Module: Status ──────────────────────────────────────────── -->
       <section class="module" data-module="status">
         <header class="module__head">
-          <span class="module__title">Status</span>
+          <span class="module__title">Flight and Event Details</span>
           <div class="module__head-actions">
             <button class="module__drag" data-module-drag title="Drag to reorder">
               <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor"><circle cx="2.5" cy="3" r="1"/><circle cx="2.5" cy="7" r="1"/><circle cx="2.5" cy="11" r="1"/><circle cx="7.5" cy="3" r="1"/><circle cx="7.5" cy="7" r="1"/><circle cx="7.5" cy="11" r="1"/></svg>
@@ -4276,7 +4299,7 @@ function renderTimeline() {
     m.dataset.eventId = ev.id;
     m.dataset.pct = ev.pct;
     m.style.left = (ev.pct*100) + "%";
-    m.dataset.label = `${ev.code} · L${ev.level} · ${pctToTime(ev.pct)}`;
+    m.dataset.label = `${ev.name} · L${ev.level} · ${pctToTime(ev.pct)}`;
     // Pin glyph — per Figma 5221:13079. Map-pin balloon with a 4×4 inner dot.
     m.innerHTML = `
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -4338,14 +4361,23 @@ function renderFinder() {
     })), "KPV"));
   }
   if (filters.has("Phase")) {
-    const phs = FLIGHT.phases.filter(p=>matches(p.name));
-    if (phs.length) root.appendChild(group("Phases", phs.map(p=>({
+    const phs = FLIGHT.phases.filter(p=>matches(p.name)).map(p => ({
       key: "phase:" + p.name,
-      label:p.name, meta:pctToTime(p.startPct), color:"#3A6478",
+      label: p.name, meta: pctToTime(p.startPct), color: "#3A6478",
       // Phases are intervals. First click scopes the timeline (with a brief
       // preview animation), second click on the same phase zooms back out.
       onClick: () => zoomToPhase(p, "phase:" + p.name),
-    })), "Phase"));
+    }));
+    // Approaches join the Phase group per Brazos feedback — they're intervals
+    // like phases, and consolidating time-segment items into one Finder scope
+    // matches the "find any phase-like thing here" mental model.
+    const appr = (FLIGHT.approaches || []).filter(a => matches(`Approach ${a.runway}`)).map(a => ({
+      key: "approach:" + a.id,
+      label: `Approach ${a.runway}`, meta: `${a.type} · TD ${pctToTime(a.touchdownPct)}`, color: "#3A6478",
+      onClick: () => seekFromFinder(a.touchdownPct),
+    }));
+    const combined = phs.concat(appr);
+    if (combined.length) root.appendChild(group("Phases", combined, "Phase"));
   }
   // Parameters last — long list, gets the scrollable tail of the finder.
   if (filters.has("Parm")) {
@@ -4866,22 +4898,23 @@ function renderTabular() {
 /* — Status page (hero · facts · events · approaches) — */
 function renderStatus() {
   const root = $("#status-page");
-  const counts = { 3:0, 2:0, 1:0 };
-  FLIGHT.events.forEach(e => counts[e.level]++);
-  const top = counts[3] > 0 ? 3 : counts[2] > 0 ? 2 : 1;
-  const verdict = top===3 ? "Severe events present"
-                : top===2 ? "Moderate events present"
-                :           "Routine — low-severity only";
   const m = Math.floor(FLIGHT.durationSec/60), s = FLIGHT.durationSec%60;
 
   root.innerHTML = `
-    <!-- Hero: just the severity counts. The verdict sentence was removed — three
-         stat blocks tell the same story without editorial framing. Border colour
-         still reflects the top severity present, so the urgency cue stays. -->
-    <section class="status-hero status-hero--level-${top}">
-      <div class="status-count level-3"><b>${counts[3]}</b><span>L3</span></div>
-      <div class="status-count level-2"><b>${counts[2]}</b><span>L2</span></div>
-      <div class="status-count level-1"><b>${counts[1]}</b><span>L1</span></div>
+    <!-- Flight details: at top of the module per Brazos feedback. Mirrors the
+         same identity fields the event drawer shows, so the two surfaces read
+         as one object. Slide-down timeline strip is kept as a redundant
+         shortcut for analysts who bring focus to the topbar. -->
+    <section class="status-flight">
+      <div><span class="kv-label">Flight</span><span class="kv-value">#${FLIGHT.id}</span></div>
+      <div><span class="kv-label">Aircraft</span><span class="kv-value">${FLIGHT.aircraft}</span></div>
+      <div><span class="kv-label">Operator</span><span class="kv-value">${FLIGHT.operator}</span></div>
+      <div><span class="kv-label">Flight type</span><span class="kv-value">${FLIGHT.flightType}</span></div>
+      <div><span class="kv-label">Origin</span><span class="kv-value">${FLIGHT.origin}</span></div>
+      <div><span class="kv-label">Destination</span><span class="kv-value">${FLIGHT.destination}</span></div>
+      <div><span class="kv-label">Takeoff</span><span class="kv-value">${FLIGHT.takeoffDate} · ${FLIGHT.startStr}Z</span></div>
+      <div><span class="kv-label">Landing</span><span class="kv-value">${FLIGHT.landingDate} · ${FLIGHT.endStr}Z</span></div>
+      <div class="status-flight__wide"><span class="kv-label">Duration</span><span class="kv-value">${m}:${String(s).padStart(2,"0")}</span></div>
     </section>
 
     <!-- Events: compact list (chronological, severity pill leading each row).
@@ -4891,43 +4924,74 @@ function renderStatus() {
       <div class="status-event-list">
         ${FLIGHT.events.map(ev => `
           <div class="status-event" data-status-event="${ev.id}" data-pct="${ev.pct}">
-            <span class="sev-pill level-${ev.level}">L${ev.level}</span>
-            <div class="status-event__head">
-              <div class="status-event__name">${ev.name}</div>
-              <div class="status-event__meta">
-                <span class="status-event__meta-time">${pctToTime(ev.pct)}</span> · ${ev.phase}
+            <div class="status-event__row">
+              <span class="sev-pill level-${ev.level}">L${ev.level}</span>
+              <div class="status-event__head">
+                <div class="status-event__name">${ev.name}</div>
+                <div class="status-event__meta">
+                  <span class="status-event__meta-time">${pctToTime(ev.pct)}</span> · ${ev.phase}
+                </div>
               </div>
+              <div class="status-event__values">
+                <span class="status-event__value">${ev.value}</span>
+                <span class="status-event__threshold">≥ ${ev.threshold}</span>
+              </div>
+              <button class="status-event__jump" data-status-event-jump="${ev.pct}" title="Jump to ${pctToTime(ev.pct)}" aria-label="Jump to event time">→</button>
             </div>
-            <div class="status-event__values">
-              <span class="status-event__value">${ev.value}</span>
-              <span class="status-event__threshold">≥ ${ev.threshold}</span>
+            <div class="status-event__pills">
+              <div class="ev-pill ev-pill--status ev-pill--status-${ev.status} status-event__pill" data-status-event-status="${ev.id}">
+                <span class="ev-pill__dot"></span>${STATUS_LABELS[ev.status]} <span class="ev-pill__caret">▾</span>
+              </div>
+              <div class="ev-pill ev-pill--validity status-event__pill" data-status-event-validity="${ev.id}">
+                ${VALIDITY_LABELS[ev.validity]} <span class="ev-pill__caret">▾</span>
+              </div>
             </div>
           </div>`).join("")}
       </div>
     </section>
 
-    <!-- Approaches: tertiary -->
-    ${FLIGHT.approaches.length ? `
-      <section class="status-section">
-        <h3 class="status-section__title">Approaches <span class="status-section__count">${FLIGHT.approaches.length}</span></h3>
-        <div class="status-approach-list">
-          ${FLIGHT.approaches.map(a => `
-            <div class="status-approach" data-status-approach="${a.id}" data-pct="${a.touchdownPct}">
-              <span class="status-approach__id">#${a.id}</span>
-              <span class="status-approach__name">${a.runway}</span>
-              <span class="status-approach__meta">${a.type} · GS ${a.glideslope}</span>
-              <span class="status-approach__td">TD ${pctToTime(a.touchdownPct)}</span>
-            </div>`).join("")}
-        </div>
-      </section>` : ""}
   `;
 
-  // Click an event row → open the detail drawer; approach → just seek
+  // Row click → open the detail drawer (no seek — the → button handles that
+  // separately per Brazos feedback). Approaches list moved into the Finder's
+  // Phase group; the standalone section here is gone.
   $$("[data-status-event]", root).forEach(r => {
-    r.addEventListener("click", () => openEventDrawer(parseInt(r.dataset.statusEvent, 10)));
+    r.addEventListener("click", (e) => {
+      if (e.target.closest('[data-status-event-jump], [data-status-event-status], [data-status-event-validity]')) return;
+      openEventDrawer(parseInt(r.dataset.statusEvent, 10));
+    });
   });
-  $$("[data-status-approach]", root).forEach(r => {
-    r.addEventListener("click", () => seekTo(parseFloat(r.dataset.pct)));
+  // Jump-to-time button on each row — seeks the timeline without opening
+  // the drawer, so analysts can move the playhead through events quickly.
+  $$("[data-status-event-jump]", root).forEach(b => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      seekTo(parseFloat(b.dataset.statusEventJump));
+    });
+  });
+  // Inline status / validity pickers — same picker the drawer uses, so
+  // changes made here are consistent with those made from the drawer.
+  $$("[data-status-event-status]", root).forEach(pill => {
+    pill.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = parseInt(pill.dataset.statusEventStatus, 10);
+      const ev = FLIGHT.events.find(x => x.id === id);
+      if (!ev) return;
+      openInlinePicker(pill,
+        STATUS_LIST.map(s => ({key:s, label:STATUS_LABELS[s], dot:s})),
+        val => { ev.status = val; ev.statusBy = "You"; renderStatus(); });
+    });
+  });
+  $$("[data-status-event-validity]", root).forEach(pill => {
+    pill.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = parseInt(pill.dataset.statusEventValidity, 10);
+      const ev = FLIGHT.events.find(x => x.id === id);
+      if (!ev) return;
+      openInlinePicker(pill,
+        VALIDITY_LIST.map(v => ({key:v, label:VALIDITY_LABELS[v]})),
+        val => { ev.validity = val; ev.validityBy = val === "auto" ? "—" : "You"; renderStatus(); });
+    });
   });
 }
 
@@ -5760,7 +5824,7 @@ function setupPlayback() {
 const MODULES = {
   graphs:  { title: "Graphs" },
   tabular: { title: "Tabular" },
-  status:  { title: "Status" },
+  status:  { title: "Flight and Event Details" },
   view3d:  { title: "3D View" },
   map:     { title: "Map" },
   pfd:     { title: "Primary Flight Display" },
@@ -7017,7 +7081,10 @@ function openEventDrawer(eventId) {
   const ev = FLIGHT.events.find(e => e.id === eventId);
   if (!ev) return;
   STATE.activeEventId = ev.id;
-  seekTo(ev.pct);
+  // Note: opening the drawer no longer auto-seeks the timeline. Per Brazos
+  // feedback, jumping to the event's time is a separate discrete action
+  // (the → button in the Status row, the timeline pin). Analysts can read
+  // an event's details without disturbing the playhead.
   renderEventDrawer();
   document.body.classList.add("has-event-drawer");
   $("#event-drawer").setAttribute("aria-hidden", "false");
