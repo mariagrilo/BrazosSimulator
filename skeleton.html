@@ -1883,6 +1883,26 @@
     .graph-card__y-axis + .graph-card__y-axis {
       border-left: 1px dashed var(--color-border);
     }
+    /* Drag & drop affordances — legend chips can be dragged to move a param
+       between graphs, or dropped on a Y-axis column to change axis grouping. */
+    .graph-card__legend-item[draggable="true"] { cursor: grab; }
+    .graph-card__legend-item[draggable="true"]:active { cursor: grabbing; }
+    .graph-card__legend-item.is-dragging { opacity: 0.4; }
+    body.is-dragging-param .graph-card__plot-area::before {
+      content: "";
+      position: absolute; inset: 0;
+      border: 1px dashed transparent;
+      pointer-events: none;
+      transition: border-color 0.12s, background 0.12s;
+    }
+    .graph-card__plot-area.is-drop-target::before {
+      border-color: var(--color-accent);
+      background: rgba(40,200,185,0.06);
+    }
+    .graph-card__y-axis.is-drop-target {
+      background: rgba(40,200,185,0.12);
+      box-shadow: inset 0 0 0 1px var(--color-accent);
+    }
     .graph-card__y-label {
       font-family: var(--font-label);
       font-size: 9px;
@@ -4580,6 +4600,52 @@ function addParamToGraph(graphIdx, pid) {
   setTimeout(() => flashGraph(graphIdx), 30);
 }
 
+// Per-graph, per-param axis key. Defaults to the parameter's natural scale
+// (ft, kt, %, deg, fpm, °C, hdg); a user override lives in g.axisOf[pid],
+// set by dragging a legend chip onto a different Y-axis column. This is what
+// lets analysts share an axis across scales, or split params that share a
+// scale onto their own axes — per Brazos: "Ability to put parameters on the
+// same y-axis scale or not (it seems to be hardcoded now which ones go on
+// the same scale?)".
+function axisKeyFor(g, pid) {
+  return (g.axisOf && g.axisOf[pid]) || PARAMETERS[pid].scale;
+}
+
+// Move a parameter from one graph to another (or to a new axis within the
+// same graph). Called from the drag/drop handlers. If targetAxisKey is null,
+// clear any override (param falls back to its scale-derived axis). If the
+// source graph runs out of params it's removed, same as removeParamFromGraph.
+function moveParamAcross(fromIdx, pid, toIdx, targetAxisKey) {
+  const from = GRAPHS[fromIdx];
+  const to = GRAPHS[toIdx];
+  if (!from || !to) return;
+  // Same graph, same axis it already had? nothing to do.
+  if (fromIdx === toIdx && (targetAxisKey || PARAMETERS[pid].scale) === axisKeyFor(from, pid)) return;
+  // Remove from source (unless it's the same graph — in that case we're just
+  // reassigning the axis).
+  if (fromIdx !== toIdx) {
+    from.params = from.params.filter(p => p !== pid);
+    if (from.axisOf) delete from.axisOf[pid];
+    // Append to target if not already there.
+    if (!to.params.includes(pid)) to.params.push(pid);
+  }
+  // Assign or clear the axis override on the target graph.
+  to.axisOf = to.axisOf || {};
+  if (targetAxisKey) to.axisOf[pid] = targetAxisKey;
+  else delete to.axisOf[pid];
+  // Prune emptied source graphs the same way removeParamFromGraph would.
+  if (fromIdx !== toIdx && from.params.length === 0) {
+    GRAPHS.splice(fromIdx, 1);
+  }
+  renderGraphs();
+  renderFinder();
+  update();
+  // Flash the destination so the analyst sees where the chip landed. Grab the
+  // new index after any splice above.
+  const newToIdx = GRAPHS.indexOf(to);
+  if (newToIdx >= 0) setTimeout(() => flashGraph(newToIdx), 30);
+}
+
 /* Popup menu under the graph header's "+" button — pick a parameter to add */
 function openAddParamMenu(graphIdx, anchorBtn) {
   // Close any open menu first
@@ -4734,6 +4800,10 @@ function renderGraphs() {
         const color = colorForParam(pid);
         const item = el("div", "graph-card__legend-item");
         item.dataset.pid = pid;
+        item.dataset.graphIdx = idx;
+        // Draggable so analysts can move params between graphs, or drop them
+        // onto a Y-axis column to change axis grouping (Brazos feedback).
+        item.setAttribute('draggable', 'true');
         item.innerHTML = `
           <div class="graph-card__legend-swatch" style="background:${color}"></div>
           <span class="graph-card__legend-name">${p.name}</span>
@@ -4748,6 +4818,19 @@ function renderGraphs() {
         // Hover-to-isolate: focus this param, fade the rest
         item.addEventListener('mouseenter', () => focusParamInCard(card, pid));
         item.addEventListener('mouseleave', () => unfocusParamsInCard(card));
+        item.addEventListener('dragstart', (e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('application/x-brazos-param', JSON.stringify({fromGraphIdx: idx, pid}));
+          // Some browsers require text/plain to be set for drag to start.
+          e.dataTransfer.setData('text/plain', pid);
+          item.classList.add('is-dragging');
+          document.body.classList.add('is-dragging-param');
+        });
+        item.addEventListener('dragend', () => {
+          item.classList.remove('is-dragging');
+          document.body.classList.remove('is-dragging-param');
+          document.querySelectorAll('.is-drop-target').forEach(n => n.classList.remove('is-drop-target'));
+        });
         legend.appendChild(item);
       });
     }
@@ -4770,32 +4853,37 @@ function renderGraphs() {
     // plot
     const plot = el("div", "graph-card__plot");
 
-    // Determine the distinct scales in this graph (in insertion order — one
-    // Y-axis column will be rendered per scale; no upper bound).
-    const scales = [];
+    // Determine the distinct AXIS KEYS in this graph (in insertion order —
+    // one Y-axis column per key). Keys default to the parameter's scale but
+    // can be overridden per-param via g.axisOf, letting analysts merge or
+    // split axes at will (dragging a chip onto a Y-axis column sets it).
+    const axisKeys = [];
     g.params.forEach(pid => {
-      const s = PARAMETERS[pid].scale;
-      if (!scales.includes(s)) scales.push(s);
+      const k = axisKeyFor(g, pid);
+      if (!axisKeys.includes(k)) axisKeys.push(k);
     });
 
-    // Y-range per scale, computed only from params using that scale
-    const yRangeByScale = {};
-    scales.forEach(s => {
+    // Y-range per axis key, computed only from params on that axis
+    const yRangeByAxis = {};
+    axisKeys.forEach(k => {
       const vals = g.params
-        .filter(pid => PARAMETERS[pid].scale === s)
+        .filter(pid => axisKeyFor(g, pid) === k)
         .flatMap(pid => PARAMETERS[pid].series);
-      yRangeByScale[s] = { yMin: Math.min(...vals), yMax: Math.max(...vals) };
+      yRangeByAxis[k] = { yMin: Math.min(...vals), yMax: Math.max(...vals) };
     });
 
-    // Render a Y-axis column per scale, side by side on the left
-    if (scales.length > 0) {
+    // Render a Y-axis column per key. Drop-target for drag&drop: dropping a
+    // legend chip on an axis merges the param onto that axis.
+    if (axisKeys.length > 0) {
       const yAxes = el("div", "graph-card__y-axes");
-      scales.forEach(s => {
+      axisKeys.forEach(k => {
         const ax = el("div", "graph-card__y-axis");
-        ax.dataset.scale = s;
-        const { yMin, yMax } = yRangeByScale[s];
+        ax.dataset.scale = k;
+        ax.dataset.axisKey = k;
+        ax.dataset.graphIdx = idx;
+        const { yMin, yMax } = yRangeByAxis[k];
         autoYLabels(yMin, yMax).forEach(y => ax.appendChild(el("span", "graph-card__y-label", y)));
-        ax.appendChild(el("span", "graph-card__y-unit", SCALE_LABEL[s] || s));
+        ax.appendChild(el("span", "graph-card__y-unit", SCALE_LABEL[k] || k));
         yAxes.appendChild(ax);
       });
       plot.appendChild(yAxes);
@@ -4824,7 +4912,7 @@ function renderGraphs() {
     g.params.forEach((pid) => {
       const p = PARAMETERS[pid];
       const color = colorForParam(pid);
-      const { yMin, yMax } = yRangeByScale[p.scale];
+      const { yMin, yMax } = yRangeByAxis[axisKeyFor(g, pid)];
       const ySpan = (yMax - yMin) || 1;
       const yPad = ySpan * 0.08;
       const pts = p.series.map((v, k) => {
@@ -6918,6 +7006,53 @@ function setupVersionBar() {
   });
 }
 
+// Delegated drag & drop for graph legend chips. Two drop targets:
+//   • .graph-card__y-axis  → move param onto that axis (same or different graph)
+//   • .graph-card__plot-area → move param to that graph, keep its scale-derived axis
+// The chip's source graph + pid are packed into dataTransfer at dragstart.
+function setupGraphDnd() {
+  const root = document.getElementById('graphs-scroll');
+  if (!root) return;
+  let currentTarget = null;
+  function clearHighlight() {
+    if (currentTarget) currentTarget.classList.remove('is-drop-target');
+    currentTarget = null;
+  }
+  root.addEventListener('dragover', function(e) {
+    const axis = e.target.closest('.graph-card__y-axis');
+    const plot = e.target.closest('.graph-card__plot-area');
+    const target = axis || plot;
+    if (!target) { clearHighlight(); return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (target !== currentTarget) {
+      clearHighlight();
+      currentTarget = target;
+      target.classList.add('is-drop-target');
+    }
+  });
+  root.addEventListener('dragleave', function(e) {
+    // Only clear when leaving root entirely (relatedTarget outside root).
+    if (!root.contains(e.relatedTarget)) clearHighlight();
+  });
+  root.addEventListener('drop', function(e) {
+    clearHighlight();
+    let raw = e.dataTransfer.getData('application/x-brazos-param');
+    if (!raw) raw = e.dataTransfer.getData('text/plain');
+    if (!raw) return;
+    let payload;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (typeof payload.fromGraphIdx !== 'number' || !payload.pid) return;
+    const axis = e.target.closest('.graph-card__y-axis');
+    const card = e.target.closest('.graph-card');
+    if (!card) return;
+    e.preventDefault();
+    const toGraphIdx = parseInt(card.dataset.graphIdx, 10);
+    const axisKey = axis ? axis.dataset.axisKey : null;
+    moveParamAcross(payload.fromGraphIdx, payload.pid, toGraphIdx, axisKey);
+  });
+}
+
 function setupLayerToggles() {
   document.addEventListener('click', function(e) {
     // Group title — toggle every .layer-row in this group. If any are off,
@@ -7415,6 +7550,7 @@ setupMosaicResize();
 setupMosaicReorder();
 setupModuleTabs();
 setupLayerToggles();
+setupGraphDnd();
 renderTemplatesList();
 setupVersionBar();
 
