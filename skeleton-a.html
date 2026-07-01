@@ -3494,13 +3494,13 @@
 </head>
 <body>
 
-<nav class="version-bar" data-version="b" aria-label="Prototype version">
+<nav class="version-bar" data-version="a" aria-label="Prototype version">
   <div class="version-bar__inner">
     <span class="version-bar__eyebrow">Prototype</span>
-    <a class="version-bar__link" data-version-link="a" href="skeleton-a.html">
+    <a class="version-bar__link is-active" data-version-link="a" href="skeleton-a.html" aria-current="page">
       Version A<span class="version-bar__hint">— pre-Brazos feedback</span>
     </a>
-    <a class="version-bar__link is-active" data-version-link="b" href="skeleton.html" aria-current="page">
+    <a class="version-bar__link" data-version-link="b" href="skeleton.html">
       Version B<span class="version-bar__hint">— revision in progress</span>
     </a>
   </div>
@@ -6827,7 +6827,6 @@ function setupVersionBar() {
   var repo = 'https://github.com/mariagrilo/BrazosSimulator/blob/main/';
   var files = { a: 'skeleton-a.html', b: 'skeleton.html' };
   var currentFile = (window.location.pathname.split('/').pop() || '').toLowerCase();
-  // On htmlpreview the pathname is "/" and the real file is in the query string.
   if (viaHtmlpreview) {
     var q = href.split('?')[1] || '';
     if (q.indexOf('skeleton-a.html') > -1) currentFile = 'skeleton-a.html';
@@ -6837,7 +6836,7 @@ function setupVersionBar() {
     var key = a.dataset.versionLink;
     var file = files[key];
     a.href = viaHtmlpreview ? ('https://htmlpreview.github.io/?' + repo + file) : file;
-    var active = (file === currentFile) || (!currentFile && key === 'b');
+    var active = (file === currentFile) || (!currentFile && key === 'a');
     a.classList.toggle('is-active', active);
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
