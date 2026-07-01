@@ -7217,11 +7217,9 @@ function openEventDrawer(eventId) {
   const ev = FLIGHT.events.find(e => e.id === eventId);
   if (!ev) return;
   STATE.activeEventId = ev.id;
-  // Row click opens the drawer AND navigates the timeline to the event's
-  // time — maria's call after seeing the split-behaviour version. The → jump
-  // button on each row is still useful for "step through events without
-  // opening the drawer each time".
-  seekTo(ev.pct);
+  // Opening the drawer no longer seeks — that belongs to the → jump button
+  // on each row (or the timeline pin). Analysts can read an event's details
+  // without disturbing the playhead they're currently parked on.
   renderEventDrawer();
   document.body.classList.add("has-event-drawer");
   $("#event-drawer").setAttribute("aria-hidden", "false");
